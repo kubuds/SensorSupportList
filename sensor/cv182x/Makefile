@@ -305,6 +305,9 @@ lontium_lt6911:
 lontium_lt7911:
 	$(call MAKE_SENSOR, ${@})
 
+toshiba_tc358743:
+	$(call MAKE_SENSOR, ${@})
+
 all_sensor:
 	@$(MAKE) -f Makefile_full || exit 1;
 

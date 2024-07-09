@@ -146,6 +146,7 @@ sensor-$(CONFIG_SENSOR_TECHPOINT_TP2825)     += techpoint_tp2825
 sensor-$(CONFIG_SENSOR_TECHPOINT_TP2863)     += techpoint_tp2863
 sensor-$(CONFIG_SENSOR_LONTIUM_LT6911)       += lontium_lt6911
 sensor-$(CONFIG_SENSOR_LONTIUM_LT7911)       += lontium_lt7911
+sensor-$(CONFIG_SENSOR_TOSHIBA_TC358743)       += toshiba_tc358743
 else
 $(error not supported chip arch cv180x/cv181x/cv182x/cv183x)
 endif
