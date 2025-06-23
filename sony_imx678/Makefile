@@ -10,10 +10,10 @@ INCS = -I$(MW_INC) -I$(ISP_INC) -I$(VI_INC) -I$(KERNEL_INC) -I$(VI_INC) -I./incl
 INCS += -I../sensor_i2c
 OBJS = $(SRCS:.c=.o)
 DEPS = $(SRCS:.c=.d)
-TARGET_A = $(MW_LIB)/libsns_sc4336p.a
-TARGET_SO = $(MW_LIB)/libsns_sc4336p.so
+TARGET_A = $(MW_LIB)/libsns_imx678.a
+TARGET_SO = $(MW_LIB)/libsns_imx678.so
 
-EXTRA_CFLAGS = $(INCS)
+EXTRA_CFLAGS = $(INCS) $(PROJ_CFLAGS)
 EXTRA_LDFLAGS =
 
 .PHONY : clean all
@@ -25,11 +25,11 @@ $(SDIR)/%.o: $(SDIR)/%.c
 
 $(TARGET_A): $(OBJS)
 	@$(AR) $(ARFLAGS) $@ $(OBJS)
-	@echo -e $(YELLOW)[LINK]$(END)[$(notdir $(AR))] $(notdir $(TARGET_A))
+	@echo -e $(YELLOW)[LINK]$(END)[$(notdir $(AR))] $(notdir $@)
 
 $(TARGET_SO): $(OBJS)
 	@$(LD) $(LDFLAGS) $(EXTRA_LDFLAGS) -o $@ --start-group $(OBJS) --end-group
-	@echo -e $(GREEN)[LINK]$(END)[$(notdir $(LD))] $(notdir $(TARGET_SO))
+	@echo -e $(GREEN)[LINK]$(END)[$(notdir $(LD))] $(notdir $@)
 
 clean:
 	@rm -f $(OBJS) $(DEPS) $(TARGET_A) $(TARGET_SO)
