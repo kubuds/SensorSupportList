@@ -271,6 +271,12 @@ sms_sc4336:
 sms_sc4336p:
 	$(call MAKE_SENSOR, ${@})
 
+sms_sc4336p_1L:
+	$(call MAKE_SENSOR, ${@})
+
+sms_sc4336p1_1L:
+	$(call MAKE_SENSOR, ${@})
+
 sms_sc5336_2L:
 	$(call MAKE_SENSOR, ${@})
 
