@@ -341,7 +341,11 @@ static void gc4653_linear_1440p30_init(VI_PIPE ViPipe)
 	gc4653_write_register(ViPipe, 0x0106, 0x78);
 	gc4653_write_register(ViPipe, 0x0108, 0x0c);
 	gc4653_write_register(ViPipe, 0x0114, 0x01);
+#ifdef CONFIG_PM_SLEEP
+	gc4653_write_register(ViPipe, 0x0115, 0x10);
+#else
 	gc4653_write_register(ViPipe, 0x0115, 0x12);
+#endif
 	gc4653_write_register(ViPipe, 0x0180, 0x46);
 	gc4653_write_register(ViPipe, 0x0181, 0x30);
 	gc4653_write_register(ViPipe, 0x0182, 0x05);
