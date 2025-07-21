@@ -3,8 +3,6 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include <cvi_type.h>
-#include <cvi_comm_video.h>
 #include "cvi_debug.h"
 #include "cvi_comm_sns.h"
 #include "cvi_sns_ctrl.h"
@@ -14,87 +12,99 @@
 #include "cvi_awb.h"
 #include "cvi_isp.h"
 
-#include "sc4336p_cmos_ex.h"
-#include "sc4336p_cmos_param.h"
+#include "sc831hai_cmos_ex.h"
+#include "sc831hai_cmos_param.h"
 
 #define DIV_0_TO_1(a)   ((0 == (a)) ? 1 : (a))
 #define DIV_0_TO_1_FLOAT(a) ((((a) < 1E-10) && ((a) > -1E-10)) ? 1 : (a))
-#define SC4336P_ID 4336
-#define SENSOR_SC4336P_WIDTH 2560
-#define SENSOR_SC4336P_HEIGHT 1440
-#define SC4336P_I2C_ADDR_1 0x30
-#define SC4336P_I2C_ADDR_2 0x32
-#define SC4336P_I2C_ADDR_IS_VALID(addr)	((addr) == SC4336P_I2C_ADDR_1 || (addr) == SC4336P_I2C_ADDR_2)
+#define SC831HAI_ID 831
+#define SC831HAI_I2C_ADDR_1 0x30
+#define SC831HAI_I2C_ADDR_2 0x32
+#define SC831HAI_I2C_ADDR_IS_VALID(addr) ((addr) == SC831HAI_I2C_ADDR_1 || (addr) == SC831HAI_I2C_ADDR_2)
 
-#define SC4336P_EXPACCURACY                    (1)
+#define SENSOR_SC831HAI_WIDTH 3840
+#define SENSOR_SC831HAI_HEIGHT 2160
+
+#define SC831HAI_EXPACCURACY                    (0.5)
 
 /****************************************************************************
  * global variables                                                            *
  ****************************************************************************/
 
-ISP_SNS_STATE_S *g_pastSC4336P[VI_MAX_PIPE_NUM] = {CVI_NULL};
-SNS_COMBO_DEV_ATTR_S *g_pastSc4336pComboDevArray[VI_MAX_PIPE_NUM] = {CVI_NULL};
+ISP_SNS_STATE_S *g_pastSC831HAI[VI_MAX_PIPE_NUM] = {CVI_NULL};
+SNS_COMBO_DEV_ATTR_S* g_pastSC831HAIComboDevArray[VI_MAX_PIPE_NUM] = {CVI_NULL};
 
-#define SC4336P_SENSOR_GET_CTX(dev, pstCtx)   (pstCtx = g_pastSC4336P[dev])
-#define SC4336P_SENSOR_SET_CTX(dev, pstCtx)   (g_pastSC4336P[dev] = pstCtx)
-#define SC4336P_SENSOR_RESET_CTX(dev)         (g_pastSC4336P[dev] = CVI_NULL)
-#define SC4336P_SENSOR_SET_COMBO(dev, pstCtx)   (g_pastSc4336pComboDevArray[dev] = pstCtx)
-#define SC4336P_SENSOR_GET_COMBO(dev, pstCtx)   (pstCtx = g_pastSc4336pComboDevArray[dev])
+#define SC831HAI_SENSOR_GET_CTX(dev, pstCtx)   (pstCtx = g_pastSC831HAI[dev])
+#define SC831HAI_SENSOR_SET_CTX(dev, pstCtx)   (g_pastSC831HAI[dev] = pstCtx)
+#define SC831HAI_SENSOR_RESET_CTX(dev)         (g_pastSC831HAI[dev] = CVI_NULL)
+#define SC831HAI_SENSOR_GET_COMBO(dev, pstCtx)   (pstCtx = g_pastSC831HAIComboDevArray[dev])
+#define SC831HAI_SENSOR_SET_COMBO(dev, pstCtx)   (g_pastSC831HAIComboDevArray[dev] = pstCtx)
 
-ISP_SNS_COMMBUS_U g_aunSC4336P_BusInfo[VI_MAX_PIPE_NUM] = {
+ISP_SNS_COMMBUS_U g_aunSC831HAI_BusInfo[VI_MAX_PIPE_NUM] = {
 	[0] = { .s8I2cDev = 0},
 	[1 ... VI_MAX_PIPE_NUM - 1] = { .s8I2cDev = -1}
 };
 
-ISP_SNS_COMMADDR_U g_aunSc4336p_AddrInfo[VI_MAX_PIPE_NUM] = {
+ISP_SNS_COMMADDR_U g_aunSC831HAI_AddrInfo[VI_MAX_PIPE_NUM] = {
 	[0] = { .s8I2cAddr = 0},
 	[1 ... VI_MAX_PIPE_NUM - 1] = { .s8I2cAddr = -1}
 };
 
-CVI_U16 g_au16SC4336P_GainMode[VI_MAX_PIPE_NUM] = {0};
-CVI_U16 g_au16SC4336P_L2SMode[VI_MAX_PIPE_NUM] = {0};
-
-ISP_SNS_MIRRORFLIP_TYPE_E g_aeSc4336p_MirrorFip[VI_MAX_PIPE_NUM] = {0};
+CVI_U16 g_au16SC831HAI_GainMode[VI_MAX_PIPE_NUM] = {0};
+CVI_U16 g_au16SC831HAI_L2SMode[VI_MAX_PIPE_NUM] = {0};
 
 /****************************************************************************
  * local variables and functions                                             *
  ****************************************************************************/
+static ISP_FSWDR_MODE_E genFSWDRMode[VI_MAX_PIPE_NUM] = {
+	[0 ... VI_MAX_PIPE_NUM - 1] = ISP_FSWDR_NORMAL_MODE
+};
+
+static CVI_U32 gu32MaxTimeGetCnt[VI_MAX_PIPE_NUM] = {0};
 static CVI_U32 g_au32InitExposure[VI_MAX_PIPE_NUM]  = {0};
 static CVI_U32 g_au32LinesPer500ms[VI_MAX_PIPE_NUM] = {0};
 static CVI_U16 g_au16InitWBGain[VI_MAX_PIPE_NUM][3] = {{0} };
 static CVI_U16 g_au16SampleRgain[VI_MAX_PIPE_NUM] = {0};
 static CVI_U16 g_au16SampleBgain[VI_MAX_PIPE_NUM] = {0};
 static CVI_S32 cmos_get_wdr_size(VI_PIPE ViPipe, ISP_SNS_ISP_INFO_S *pstIspCfg);
-/*****SC4336P Lines Range*****/
-#define SC4336P_FULL_LINES_MAX  (0x7FFF)
+/*****SC831HAI Lines Range*****/
+#define SC831HAI_FULL_LINES_MAX  (0xFFF0)
 
-/*****SC4336P Register Address*****/
-#define SC4336P_EXP_ADDR		0x3E00
-#define SC4336P_AGAIN_ADDR	0x3E09
-#define SC4336P_DGAIN_ADDR	0x3E06
-#define SC4336P_VMAX_ADDR	0x320E
+/*****SC831HAI Register Address*****/
+#define SC831HAI_SHS1_0_ADDR		0x3E00 //bit[3:0] H
+#define SC831HAI_SHS1_1_ADDR		0x3E01 //bit[7:0] M
+#define SC831HAI_SHS1_2_ADDR		0x3E02 //bit[7:4] L
 
-#define SC4336P_RES_IS_1440P(w, h)      ((w) == 2560 && (h) == 1440)
+#define SC831HAI_AGAIN_ADDR			0x3E08
+#define SC831HAI_A_FINEGAIN_ADDR	0x3E09
+#define SC831HAI_DGAIN_ADDR			0x3E06
+#define SC831HAI_D_FINEGAIN_ADDR	0x3E07
+
+#define SC831HAI_VMAX_ADDR		0x320E //(0x320e[7:0],0x320f)
+
+#define SC831HAI_GROUP_HOLD_ADDR	0x3812
+
+#define SC831HAI_RES_IS_2160P(w, h)      ((w) == 3840 && (h) == 2160)
 
 static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSnsDft)
 {
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
 
 	CMOS_CHECK_POINTER(pstAeSnsDft);
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
 
 	pstAeSnsDft->u32FullLinesStd = pstSnsState->u32FLStd;
 	pstAeSnsDft->u32FlickerFreq = 50 * 256;
-	pstAeSnsDft->u32FullLinesMax = SC4336P_FULL_LINES_MAX;
+	pstAeSnsDft->u32FullLinesMax = SC831HAI_FULL_LINES_MAX;
 	pstAeSnsDft->u32HmaxTimes = (1000000) / (pstSnsState->u32FLStd * 30);
 
 	pstAeSnsDft->stIntTimeAccu.enAccuType = AE_ACCURACY_LINEAR;
-	pstAeSnsDft->stIntTimeAccu.f32Accuracy = SC4336P_EXPACCURACY;
+	pstAeSnsDft->stIntTimeAccu.f32Accuracy = SC831HAI_EXPACCURACY;
 	pstAeSnsDft->stIntTimeAccu.f32Offset = 0;
 
-	pstAeSnsDft->stAgainAccu.enAccuType = AE_ACCURACY_DB;
-	pstAeSnsDft->stAgainAccu.f32Accuracy = 6;
+	pstAeSnsDft->stAgainAccu.enAccuType = AE_ACCURACY_TABLE;
+	pstAeSnsDft->stAgainAccu.f32Accuracy = 1;
 
 	pstAeSnsDft->stDgainAccu.enAccuType = AE_ACCURACY_TABLE;
 	pstAeSnsDft->stDgainAccu.f32Accuracy = 1;
@@ -111,34 +121,34 @@ static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSns
 
 	switch (pstSnsState->enWDRMode) {
 	case WDR_MODE_NONE:   /*linear mode*/
-		pstAeSnsDft->f32Fps = g_astSC4336P_mode[pstSnsState->u8ImgMode].f32MaxFps;
-		pstAeSnsDft->f32MinFps = g_astSC4336P_mode[pstSnsState->u8ImgMode].f32MinFps;
+		pstAeSnsDft->f32Fps = g_astSC831HAI_mode[pstSnsState->u8ImgMode].f32MaxFps;
+		pstAeSnsDft->f32MinFps = g_astSC831HAI_mode[pstSnsState->u8ImgMode].f32MinFps;
 		pstAeSnsDft->au8HistThresh[0] = 0xd;
 		pstAeSnsDft->au8HistThresh[1] = 0x28;
 		pstAeSnsDft->au8HistThresh[2] = 0x60;
 		pstAeSnsDft->au8HistThresh[3] = 0x80;
 
-		pstAeSnsDft->u32MaxAgain = g_astSC4336P_mode[pstSnsState->u8ImgMode].stAgain[0].u32Max;
-		pstAeSnsDft->u32MinAgain = g_astSC4336P_mode[pstSnsState->u8ImgMode].stAgain[0].u32Min;
+		pstAeSnsDft->u32MaxAgain = g_astSC831HAI_mode[pstSnsState->u8ImgMode].stAgain[0].u32Max;
+		pstAeSnsDft->u32MinAgain = g_astSC831HAI_mode[pstSnsState->u8ImgMode].stAgain[0].u32Min;
 		pstAeSnsDft->u32MaxAgainTarget = pstAeSnsDft->u32MaxAgain;
 		pstAeSnsDft->u32MinAgainTarget = pstAeSnsDft->u32MinAgain;
 
-		pstAeSnsDft->u32MaxDgain = g_astSC4336P_mode[pstSnsState->u8ImgMode].stDgain[0].u32Max;
-		pstAeSnsDft->u32MinDgain = g_astSC4336P_mode[pstSnsState->u8ImgMode].stDgain[0].u32Min;
+		pstAeSnsDft->u32MaxDgain = g_astSC831HAI_mode[pstSnsState->u8ImgMode].stDgain[0].u32Max;
+		pstAeSnsDft->u32MinDgain = g_astSC831HAI_mode[pstSnsState->u8ImgMode].stDgain[0].u32Min;
 		pstAeSnsDft->u32MaxDgainTarget = pstAeSnsDft->u32MaxDgain;
 		pstAeSnsDft->u32MinDgainTarget = pstAeSnsDft->u32MinDgain;
 
 		pstAeSnsDft->u8AeCompensation = 40;
 		pstAeSnsDft->u32InitAESpeed = 64;
 		pstAeSnsDft->u32InitAETolerance = 5;
-		pstAeSnsDft->u32AEResponseFrame = 4;
+		pstAeSnsDft->u32AEResponseFrame = 6;
 		pstAeSnsDft->enAeExpMode = AE_EXP_HIGHLIGHT_PRIOR;
 		pstAeSnsDft->u32InitExposure = g_au32InitExposure[ViPipe] ? g_au32InitExposure[ViPipe] : 76151;
 
-		pstAeSnsDft->u32MaxIntTime = g_astSC4336P_mode[pstSnsState->u8ImgMode].stExp[0].u32Max;
-		pstAeSnsDft->u32MinIntTime = g_astSC4336P_mode[pstSnsState->u8ImgMode].stExp[0].u32Min;
-		pstAeSnsDft->u32MaxIntTimeTarget = 65535;
-		pstAeSnsDft->u32MinIntTimeTarget = 1;
+		pstAeSnsDft->u32MaxIntTime = g_astSC831HAI_mode[pstSnsState->u8ImgMode].stExp[0].u32Max;
+		pstAeSnsDft->u32MinIntTime = g_astSC831HAI_mode[pstSnsState->u8ImgMode].stExp[0].u32Min;
+		pstAeSnsDft->u32MaxIntTimeTarget = pstAeSnsDft->u32MaxIntTime;
+		pstAeSnsDft->u32MinIntTimeTarget = pstAeSnsDft->u32MinIntTime;
 		break;
 	default:
 		CVI_TRACE_SNS(CVI_DBG_ERR, "Not support sensor mode: %d\n", pstSnsState->u8ImgMode);
@@ -152,39 +162,46 @@ static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSns
 static CVI_S32 cmos_fps_set(VI_PIPE ViPipe, CVI_FLOAT f32Fps, AE_SENSOR_DEFAULT_S *pstAeSnsDft)
 {
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
-	CVI_U32 u32VMAX = 0;
+	CVI_U32 u32VMAX;
 	CVI_FLOAT f32MaxFps = 0;
 	CVI_FLOAT f32MinFps = 0;
 	CVI_U32 u32Vts = 0;
 	ISP_SNS_REGS_INFO_S *pstSnsRegsInfo = CVI_NULL;
 
 	CMOS_CHECK_POINTER(pstAeSnsDft);
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
 
-	u32Vts = g_astSC4336P_mode[pstSnsState->u8ImgMode].u32VtsDef;
+	u32Vts = g_astSC831HAI_mode[pstSnsState->u8ImgMode].u32VtsDef;
 	pstSnsRegsInfo = &pstSnsState->astSyncInfo[0].snsCfg;
-	f32MaxFps = g_astSC4336P_mode[pstSnsState->u8ImgMode].f32MaxFps;
-	f32MinFps = g_astSC4336P_mode[pstSnsState->u8ImgMode].f32MinFps;
+	f32MaxFps = g_astSC831HAI_mode[pstSnsState->u8ImgMode].f32MaxFps;
+	f32MinFps = g_astSC831HAI_mode[pstSnsState->u8ImgMode].f32MinFps;
 
-	if (pstSnsState->enWDRMode == WDR_MODE_NONE) {
+	switch (pstSnsState->u8ImgMode) {
+	case SC831HAI_MODE_2160P30_4L_MASTER:
+	case SC831HAI_MODE_2160P30_4L_SLAVE:
 		if ((f32Fps <= f32MaxFps) && (f32Fps >= f32MinFps)) {
 			u32VMAX = u32Vts * f32MaxFps / DIV_0_TO_1_FLOAT(f32Fps);
 		} else {
 			CVI_TRACE_SNS(CVI_DBG_ERR, "Not support Fps: %f\n", f32Fps);
 			return CVI_FAILURE;
 		}
+		u32VMAX = (u32VMAX > SC831HAI_FULL_LINES_MAX) ? SC831HAI_FULL_LINES_MAX : u32VMAX;
+		break;
+	default:
+		CVI_TRACE_SNS(CVI_DBG_ERR, "Not support sensor mode: %d\n", pstSnsState->u8ImgMode);
+		return CVI_FAILURE;
 	}
 
 	pstSnsState->u32FLStd = u32VMAX;
 
-	pstSnsRegsInfo->astI2cData[LINEAR_VMAX_0_ADDR].u32Data = ((u32VMAX & 0x7F00) >> 8);
+	pstSnsRegsInfo->astI2cData[LINEAR_VMAX_0_ADDR].u32Data = ((u32VMAX & 0xFF00) >> 8);
 	pstSnsRegsInfo->astI2cData[LINEAR_VMAX_1_ADDR].u32Data = (u32VMAX & 0xFF);
 
 	pstAeSnsDft->f32Fps = f32Fps;
 	pstAeSnsDft->u32LinesPer500ms = pstSnsState->u32FLStd * f32Fps / 2;
 	pstAeSnsDft->u32FullLinesStd = pstSnsState->u32FLStd;
-	pstAeSnsDft->u32MaxIntTime = pstSnsState->u32FLStd - 8;
+	pstAeSnsDft->u32MaxIntTime = (pstSnsState->u32FLStd * 2) - 13;
 	pstSnsState->au32FL[0] = pstSnsState->u32FLStd;
 	pstAeSnsDft->u32FullLines = pstSnsState->au32FL[0];
 	pstAeSnsDft->u32HmaxTimes = (1000000) / (pstSnsState->u32FLStd * DIV_0_TO_1_FLOAT(f32Fps));
@@ -197,32 +214,33 @@ static CVI_S32 cmos_inttime_update(VI_PIPE ViPipe, CVI_U32 *u32IntTime)
 {
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
 	ISP_SNS_REGS_INFO_S *pstSnsRegsInfo = CVI_NULL;
-	CVI_U32 u32TmpIntTime, u32MinTime, u32MaxTime;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
 	CMOS_CHECK_POINTER(u32IntTime);
 	pstSnsRegsInfo = &pstSnsState->astSyncInfo[0].snsCfg;
 
+	CVI_U32 u32TmpIntTime = u32IntTime[0];
 	/* linear exposure reg range:
-	 * min : 0
-	 * max : vts - 8
-	 * step : 1
+	 * min : 4
+	 * max : 2 * vts - 13
+	 * step : 1(1 means step is 0.5 line)
 	 */
-	u32MinTime = 0;
-	u32MaxTime = pstSnsState->au32FL[0] - 8;
-	u32TmpIntTime = (u32IntTime[0] > u32MaxTime) ? u32MaxTime : u32IntTime[0];
-	u32TmpIntTime = (u32TmpIntTime < u32MinTime) ? u32MinTime : u32TmpIntTime;
+	u32TmpIntTime = (u32TmpIntTime > ((2 * pstSnsState->au32FL[0]) - 13)) ?
+			((2 * pstSnsState->au32FL[0]) - 13) : u32TmpIntTime;
+	if (!u32TmpIntTime)
+		u32TmpIntTime = 4;
 
 	pstSnsRegsInfo->astI2cData[LINEAR_SHS1_0_ADDR].u32Data = ((u32TmpIntTime & 0xF000) >> 12); //bit[15:12]
 	pstSnsRegsInfo->astI2cData[LINEAR_SHS1_1_ADDR].u32Data = ((u32TmpIntTime & 0x0FF0) >> 4);  //bit[11:4]
-	pstSnsRegsInfo->astI2cData[LINEAR_SHS1_2_ADDR].u32Data = ((u32TmpIntTime & 0x000F) << 4);  //bit[3:0]
+	pstSnsRegsInfo->astI2cData[LINEAR_SHS1_2_ADDR].u32Data = ((u32TmpIntTime & 0x000F) << 4);  //bit[7:4]
 
 	return CVI_SUCCESS;
+
 }
 
 struct gain_tbl_info_s {
-	CVI_U16	gainMax;
+	CVI_U32	gainMax;
 	CVI_U16	idxBase;
 	CVI_U8	regGain;
 	CVI_U8	regGainFineBase;
@@ -231,73 +249,72 @@ struct gain_tbl_info_s {
 
 static struct gain_tbl_info_s AgainInfo[6] = {
 	{
-		.gainMax = 2031,
+		.gainMax = 1504,
 		.idxBase = 0,
 		.regGain = 0x00,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 2,
+		.regGainFineBase = 0x20,
+		.regGainFineStep = 1,
 	},
 	{
-		.gainMax = 4064,
-		.idxBase = 64,
-		.regGain = 0x08,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 2,
+		.gainMax = 3023,
+		.idxBase = 16,
+		.regGain = 0x80,
+		.regGainFineBase = 0x20,
+		.regGainFineStep = 1,
 	},
 	{
-		.gainMax = 8128,
-		.idxBase = 128,
-		.regGain = 0x09,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 2,
+		.gainMax = 6047,
+		.idxBase = 48,
+		.regGain = 0x81,
+		.regGainFineBase = 0x20,
+		.regGainFineStep = 1,
 	},
 	{
-		.gainMax = 16256,
-		.idxBase = 192,
-		.regGain = 0x0b,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 2,
+		.gainMax = 12096,
+		.idxBase = 80,
+		.regGain = 0x83,
+		.regGainFineBase = 0x20,
+		.regGainFineStep = 1,
 	},
 	{
-		.gainMax = 32512,
-		.idxBase = 256,
-		.regGain = 0x0f,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 2,
+		.gainMax = 24192,
+		.idxBase = 112,
+		.regGain = 0x87,
+		.regGainFineBase = 0x20,
+		.regGainFineStep = 1,
 	},
 	{
-		.gainMax = 32768,
-		.idxBase = 320,
-		.regGain = 0x1f,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 2,
+		.gainMax = 48384,
+		.idxBase = 144,
+		.regGain = 0x8f,
+		.regGainFineBase = 0x20,
+		.regGainFineStep = 1,
 	},
 };
 
-static CVI_U32 Again_table[] = {
-	1024, 1040, 1055, 1072, 1088, 1103, 1120, 1135, 1152, 1168, 1183, 1200, 1216, 1231, 1248, 1263, 1280,
-	1296, 1311, 1328, 1344, 1359, 1376, 1391, 1408, 1424, 1439, 1456, 1472, 1487, 1504, 1519, 1536, 1552,
-	1567, 1584, 1600, 1615, 1632, 1647, 1664, 1680, 1695, 1712, 1728, 1743, 1760, 1775, 1792, 1808, 1823,
-	1840, 1856, 1871, 1888, 1903, 1920, 1936, 1951, 1968, 1984, 1999, 2016, 2031, 2048, 2079, 2112, 2144,
-	2176, 2207, 2240, 2272, 2304, 2335, 2368, 2400, 2432, 2463, 2496, 2528, 2560, 2591, 2624, 2656, 2688,
-	2719, 2752, 2784, 2816, 2847, 2880, 2912, 2944, 2975, 3008, 3040, 3072, 3103, 3136, 3168, 3200, 3231,
-	3264, 3296, 3328, 3359, 3392, 3424, 3456, 3487, 3520, 3552, 3584, 3615, 3648, 3680, 3712, 3743, 3776,
-	3808, 3840, 3871, 3904, 3936, 3968, 3999, 4032, 4064, 4096, 4160, 4224, 4288, 4352, 4416, 4480, 4544,
-	4608, 4672, 4736, 4800, 4864, 4928, 4992, 5056, 5120, 5184, 5248, 5312, 5376, 5440, 5504, 5568, 5632,
-	5696, 5760, 5824, 5888, 5952, 6016, 6080, 6144, 6208, 6272, 6336, 6400, 6464, 6528, 6592, 6656, 6720,
-	6784, 6848, 6912, 6976, 7040, 7104, 7168, 7232, 7296, 7360, 7424, 7488, 7552, 7616, 7680, 7744, 7808,
-	7872, 7936, 8000, 8064, 8128, 8192, 8320, 8448, 8576, 8704, 8832, 8960, 9088, 9216, 9344, 9472, 9600,
-	9728, 9856, 9984, 10112, 10240, 10368, 10496, 10624, 10752, 10880, 11008, 11136, 11264, 11392, 11520,
-	11648, 11776, 11904, 12032, 12160, 12288, 12416, 12544, 12672, 12800, 12928, 13056, 13184, 13312, 13440,
-	13568, 13696, 13824, 13952, 14080, 14208, 14336, 14464, 14592, 14720, 14848, 14976, 15104, 15232, 15360,
-	15488, 15616, 15744, 15872, 16000, 16128, 16256, 16384, 16640, 16896, 17152, 17408, 17664, 17920, 18176,
-	18432, 18688, 18944, 19200, 19456, 19712, 19968, 20224, 20480, 20736, 20992, 21248, 21504, 21760, 22016,
-	22272, 22528, 22784, 23040, 23296, 23552, 23808, 24064, 24320, 24576, 24832, 25088, 25344, 25600, 25856,
-	26112, 26368, 26624, 26880, 27136, 27392, 27648, 27904, 28160, 28416, 28672, 28928, 29184, 29440, 29696,
-	29952, 30208, 30464, 30720, 30976, 31232, 31488, 31744, 32000, 32256, 32512, 32768
+static CVI_U32 Again_table[176] = {
+	1024, 1055, 1088, 1120, 1152, 1183, 1216, 1248, 1280, 1311,
+	1344, 1376, 1408, 1439, 1472, 1504, 1536, 1584, 1632, 1680,
+	1728, 1775, 1823, 1871, 1920, 1968, 2016, 2064, 2112, 2159,
+	2207, 2255, 2304, 2352, 2400, 2448, 2496, 2543, 2591, 2639,
+	2688, 2736, 2784, 2832, 2880, 2927, 2975, 3023, 3072, 3168,
+	3264, 3359, 3456, 3552, 3648, 3743, 3840, 3936, 4032, 4127,
+	4224, 4320, 4416, 4511, 4608, 4704, 4800, 4895, 4992, 5088,
+	5184, 5279, 5376, 5472, 5568, 5663, 5760, 5856, 5952, 6047,
+	6144, 6336, 6528, 6720, 6912, 7104, 7296, 7488, 7680, 7872,
+	8064, 8256, 8448, 8640, 8832, 9024, 9216, 9408, 9600, 9792,
+	9984, 10176, 10362, 10557, 10752, 10936, 11130, 11325, 11520,
+	11704, 11898, 12093, 12288, 12666, 13056, 13434, 13824, 14202,
+	14592, 14970, 15360, 15738, 16128, 16506, 16896, 17274, 17664,
+	18042, 18432, 18810, 19200, 19578, 19968, 20346, 20736, 21114,
+	21504, 21882, 22272, 22650, 23040, 23418, 23808, 24186, 24576,
+	25344, 26112, 26880, 27648, 28416, 29184, 29952, 30720, 31488,
+	32256, 33024, 33792, 34560, 35328, 36096, 36864, 37632, 38400,
+	39168, 39936, 40704, 41472, 42240, 43008, 43776, 44544, 45312,
+	46080, 46848, 47616, 48384
 };
 
-static struct gain_tbl_info_s DgainInfo[] = {
+static struct gain_tbl_info_s DgainInfo[2] = {
 	{
 		.gainMax = 2016,
 		.idxBase = 0,
@@ -312,52 +329,34 @@ static struct gain_tbl_info_s DgainInfo[] = {
 		.regGainFineBase = 0x80,
 		.regGainFineStep = 4,
 	},
-	{
-		.gainMax = 8064,
-		.idxBase = 64,
-		.regGain = 0x03,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 4,
-	},
-	{
-		.gainMax = 16128,
-		.idxBase = 96,
-		.regGain = 0x07,
-		.regGainFineBase = 0x80,
-		.regGainFineStep = 4,
-	},
 };
 
-static CVI_U32 Dgain_table[] = {
-	1024, 1055, 1088, 1120, 1152, 1183, 1216, 1248, 1280, 1311, 1344, 1376, 1408, 1439, 1472,
-	1504, 1536, 1567, 1600, 1632, 1664, 1695, 1728, 1760, 1792, 1823, 1856, 1888, 1920, 1951,
-	1984, 2016, 2048, 2112, 2176, 2240, 2304, 2368, 2432, 2496, 2560, 2624, 2688, 2752, 2816,
-	2816, 2880, 2944, 3008, 3072, 3136, 3200, 3264, 3328, 3392, 3456, 3520, 3584, 3648, 3712,
-	3840, 3904, 3968, 4032, 4096, 4224, 4352, 4480, 4608, 4736, 4864, 4992, 5120, 5248, 5376,
-	5504, 5632, 5760, 5888, 6016, 6144, 6272, 6400, 6528, 6656, 6784, 6912, 7040, 7168, 7296,
-	7424, 7552, 7680, 7808, 7936, 8064, 8192, 8448, 8704, 8960, 9216, 9472, 9728, 9984, 10240,
-	10496, 10752, 11008, 11264, 11520, 11776, 12032, 12288, 12544, 12800, 13056, 13312,
-	13568, 13824, 14080, 14336, 14592, 14848, 15104, 15360, 15616, 15872, 16128
+static CVI_U32 Dgain_table[64] = {
+	1024, 1055, 1088, 1120, 1152, 1183, 1216, 1248, 1280, 1311,
+	1344, 1376, 1408, 1439, 1472, 1504, 1536, 1567, 1600, 1632,
+	1664, 1695, 1728, 1760, 1792, 1823, 1856, 1888, 1920, 1951,
+	1984, 2016, 2048, 2112, 2176, 2240, 2304, 2368, 2432, 2496,
+	2560, 2624, 2688, 2752, 2816, 2880, 2944, 3008, 3072, 3136,
+	3200, 3264, 3328, 3392, 3456, 3520, 3584, 3648, 3712, 3776,
+	3840, 3904, 3968, 4032
 };
-
-static const CVI_U32 dgain_table_size = ARRAY_SIZE(Dgain_table);
-static const CVI_U32 again_table_size = ARRAY_SIZE(Again_table);
 
 static CVI_S32 cmos_again_calc_table(VI_PIPE ViPipe, CVI_U32 *pu32AgainLin, CVI_U32 *pu32AgainDb)
 {
-	CVI_U32 i;
+	int i;
 
-	(void) ViPipe;
+	(void)ViPipe;
 
 	CMOS_CHECK_POINTER(pu32AgainLin);
 	CMOS_CHECK_POINTER(pu32AgainDb);
-	if (*pu32AgainLin >= Again_table[again_table_size - 1]) {
-		*pu32AgainLin = Again_table[again_table_size - 1];
-		*pu32AgainDb = again_table_size - 1;
+
+	if (*pu32AgainLin >= Again_table[175]) {
+		*pu32AgainLin = Again_table[175];
+		*pu32AgainDb = 175;
 		return CVI_SUCCESS;
 	}
 
-	for (i = 1; i < again_table_size; i++) {
+	for (i = 1; i < 176; i++) {
 		if (*pu32AgainLin < Again_table[i]) {
 			*pu32AgainLin = Again_table[i - 1];
 			*pu32AgainDb = i - 1;
@@ -369,20 +368,20 @@ static CVI_S32 cmos_again_calc_table(VI_PIPE ViPipe, CVI_U32 *pu32AgainLin, CVI_
 
 static CVI_S32 cmos_dgain_calc_table(VI_PIPE ViPipe, CVI_U32 *pu32DgainLin, CVI_U32 *pu32DgainDb)
 {
-	CVI_U32 i;
+	int i;
 
 	(void)ViPipe;
 
 	CMOS_CHECK_POINTER(pu32DgainLin);
 	CMOS_CHECK_POINTER(pu32DgainDb);
 
-	if (*pu32DgainLin >= Dgain_table[dgain_table_size - 1]) {
-		*pu32DgainLin = Dgain_table[dgain_table_size - 1];
-		*pu32DgainDb = dgain_table_size - 1;
+	if (*pu32DgainLin >= Dgain_table[63]) {
+		*pu32DgainLin = Dgain_table[63];
+		*pu32DgainDb = 63;
 		return CVI_SUCCESS;
 	}
 
-	for (i = 1; i < dgain_table_size; i++) {
+	for (i = 1; i < 64; i++) {
 		if (*pu32DgainLin < Dgain_table[i]) {
 			*pu32DgainLin = Dgain_table[i - 1];
 			*pu32DgainDb = i - 1;
@@ -401,7 +400,7 @@ static CVI_S32 cmos_gains_update(VI_PIPE ViPipe, CVI_U32 *pu32Again, CVI_U32 *pu
 	struct gain_tbl_info_s *info;
 	int i, tbl_num;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
 	CMOS_CHECK_POINTER(pu32Again);
 	CMOS_CHECK_POINTER(pu32Dgain);
@@ -419,9 +418,9 @@ static CVI_S32 cmos_gains_update(VI_PIPE ViPipe, CVI_U32 *pu32Again, CVI_U32 *pu
 			break;
 	}
 
-	pstSnsRegsInfo->astI2cData[LINEAR_AGAIN_H_ADDR].u32Data = (info->regGain & 0xFF);
+	pstSnsRegsInfo->astI2cData[LINEAR_AGAIN_ADDR].u32Data = (info->regGain & 0xFF);
 	u32Again = info->regGainFineBase + (u32Again - info->idxBase) * info->regGainFineStep;
-	pstSnsRegsInfo->astI2cData[LINEAR_AGAIN_L_ADDR].u32Data = (u32Again & 0xFF);
+	pstSnsRegsInfo->astI2cData[LINEAR_A_FINEGAIN_ADDR].u32Data = (u32Again & 0xFF);
 
 	/* find Dgain register setting. */
 	tbl_num = sizeof(DgainInfo)/sizeof(struct gain_tbl_info_s);
@@ -439,6 +438,34 @@ static CVI_S32 cmos_gains_update(VI_PIPE ViPipe, CVI_U32 *pu32Again, CVI_U32 *pu
 	return CVI_SUCCESS;
 }
 
+static CVI_S32 cmos_get_inttime_max(VI_PIPE ViPipe, CVI_U16 u16ManRatioEnable, CVI_U32 *au32Ratio,
+		CVI_U32 *au32IntTimeMax, CVI_U32 *au32IntTimeMin, CVI_U32 *pu32LFMaxIntTime)
+{
+	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
+
+	(void) u16ManRatioEnable;
+
+	CMOS_CHECK_POINTER(au32Ratio);
+	CMOS_CHECK_POINTER(au32IntTimeMax);
+	CMOS_CHECK_POINTER(au32IntTimeMin);
+	CMOS_CHECK_POINTER(pu32LFMaxIntTime);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	CMOS_CHECK_POINTER(pstSnsState);
+
+	return CVI_SUCCESS;
+}
+
+/* Only used in LINE_WDR mode */
+static CVI_S32 cmos_ae_fswdr_attr_set(VI_PIPE ViPipe, AE_FSWDR_ATTR_S *pstAeFSWDRAttr)
+{
+	CMOS_CHECK_POINTER(pstAeFSWDRAttr);
+
+	genFSWDRMode[ViPipe] = pstAeFSWDRAttr->enFSWDRMode;
+	gu32MaxTimeGetCnt[ViPipe] = 0;
+
+	return CVI_SUCCESS;
+}
+
 static CVI_S32 cmos_init_ae_exp_function(AE_SENSOR_EXP_FUNC_S *pstExpFuncs)
 {
 	CMOS_CHECK_POINTER(pstExpFuncs);
@@ -452,8 +479,8 @@ static CVI_S32 cmos_init_ae_exp_function(AE_SENSOR_EXP_FUNC_S *pstExpFuncs)
 	pstExpFuncs->pfn_cmos_gains_update      = cmos_gains_update;
 	pstExpFuncs->pfn_cmos_again_calc_table  = cmos_again_calc_table;
 	pstExpFuncs->pfn_cmos_dgain_calc_table  = cmos_dgain_calc_table;
-	//pstExpFuncs->pfn_cmos_get_inttime_max   = cmos_get_inttime_max;
-	//pstExpFuncs->pfn_cmos_ae_fswdr_attr_set = cmos_ae_fswdr_attr_set;
+	pstExpFuncs->pfn_cmos_get_inttime_max   = cmos_get_inttime_max;
+	pstExpFuncs->pfn_cmos_ae_fswdr_attr_set = cmos_ae_fswdr_attr_set;
 
 	return CVI_SUCCESS;
 }
@@ -507,12 +534,12 @@ static CVI_S32 cmos_get_blc_default(VI_PIPE ViPipe, ISP_CMOS_BLACK_LEVEL_S *pstB
 
 static CVI_S32 cmos_get_wdr_size(VI_PIPE ViPipe, ISP_SNS_ISP_INFO_S *pstIspCfg)
 {
-	const SC4336P_MODE_S *pstMode = CVI_NULL;
+	const SC831HAI_MODE_S *pstMode = CVI_NULL;
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
-	pstMode = &g_astSC4336P_mode[pstSnsState->u8ImgMode];
+	pstMode = &g_astSC831HAI_mode[pstSnsState->u8ImgMode];
 
 	if (pstSnsState->enWDRMode != WDR_MODE_NONE) {
 		pstIspCfg->frm_num = 2;
@@ -530,16 +557,21 @@ static CVI_S32 cmos_set_wdr_mode(VI_PIPE ViPipe, CVI_U8 u8Mode)
 {
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
 
 	pstSnsState->bSyncInit = CVI_FALSE;
 
 	switch (u8Mode) {
 	case WDR_MODE_NONE:
-		// 	pstSnsState->u8ImgMode = SC4336P_MODE_1440P30;
+		if (pstSnsState->u8ImgMode == SC831HAI_MODE_2160P30_4L_MASTER)
+			pstSnsState->u8ImgMode = SC831HAI_MODE_2160P30_4L_MASTER;
+		else if (pstSnsState->u8ImgMode == SC831HAI_MODE_2160P30_4L_SLAVE)
+			pstSnsState->u8ImgMode = SC831HAI_MODE_2160P30_4L_SLAVE;
+
+
 		pstSnsState->enWDRMode = WDR_MODE_NONE;
-		pstSnsState->u32FLStd = g_astSC4336P_mode[pstSnsState->u8ImgMode].u32VtsDef;
+		pstSnsState->u32FLStd = g_astSC831HAI_mode[pstSnsState->u8ImgMode].u32VtsDef;
 		CVI_TRACE_SNS(CVI_DBG_INFO, "linear mode\n");
 		break;
 	default:
@@ -602,7 +634,7 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 	ISP_I2C_DATA_S *pstI2c_data = CVI_NULL;
 
 	CMOS_CHECK_POINTER(pstSnsSyncInfo);
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
 	pstSnsRegsInfo = &pstSnsSyncInfo->snsCfg;
 	pstCfg0 = &pstSnsState->astSyncInfo[0];
@@ -611,31 +643,38 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 
 	if ((pstSnsState->bSyncInit == CVI_FALSE) || (pstSnsRegsInfo->bConfig == CVI_FALSE)) {
 		pstCfg0->snsCfg.enSnsType = SNS_I2C_TYPE;
-		pstCfg0->snsCfg.unComBus.s8I2cDev = g_aunSC4336P_BusInfo[ViPipe].s8I2cDev;
+		pstCfg0->snsCfg.unComBus.s8I2cDev = g_aunSC831HAI_BusInfo[ViPipe].s8I2cDev;
 		pstCfg0->snsCfg.u8Cfg2ValidDelayMax = 0;
 		pstCfg0->snsCfg.use_snsr_sram = CVI_TRUE;
 		pstCfg0->snsCfg.u32RegNum = LINEAR_REGS_NUM;
 
 		for (i = 0; i < pstCfg0->snsCfg.u32RegNum; i++) {
 			pstI2c_data[i].bUpdate = CVI_TRUE;
-			pstI2c_data[i].u8DevAddr = g_aunSc4336p_AddrInfo[ViPipe].s8I2cAddr;
-			pstI2c_data[i].u32AddrByteNum = sc4336p_addr_byte;
-			pstI2c_data[i].u32DataByteNum = sc4336p_data_byte;
+			pstI2c_data[i].u8DevAddr = g_aunSC831HAI_AddrInfo[ViPipe].s8I2cAddr;
+			pstI2c_data[i].u32AddrByteNum = sc831hai_addr_byte;
+			pstI2c_data[i].u32DataByteNum = sc831hai_data_byte;
 		}
 		switch (pstSnsState->enWDRMode) {
 		case WDR_MODE_NONE:
 			//Linear Mode Regs
-			pstI2c_data[LINEAR_SHS1_0_ADDR].u32RegAddr     = SC4336P_EXP_ADDR;
-			pstI2c_data[LINEAR_SHS1_1_ADDR].u32RegAddr     = SC4336P_EXP_ADDR + 1;
-			pstI2c_data[LINEAR_SHS1_2_ADDR].u32RegAddr     = SC4336P_EXP_ADDR + 2;
+			pstI2c_data[LINEAR_HOLD_START].u32RegAddr     = SC831HAI_GROUP_HOLD_ADDR;
+			pstI2c_data[LINEAR_HOLD_START].u32Data = 0x00;
+			pstI2c_data[LINEAR_SHS1_0_ADDR].u32RegAddr     = SC831HAI_SHS1_0_ADDR;
+			pstI2c_data[LINEAR_SHS1_1_ADDR].u32RegAddr     = SC831HAI_SHS1_1_ADDR;
+			pstI2c_data[LINEAR_SHS1_2_ADDR].u32RegAddr     = SC831HAI_SHS1_2_ADDR;
+			pstI2c_data[LINEAR_SHS1_0_ADDR].u8DelayFrmNum  = 1;
+			pstI2c_data[LINEAR_SHS1_1_ADDR].u8DelayFrmNum  = 1;
+			pstI2c_data[LINEAR_SHS1_2_ADDR].u8DelayFrmNum  = 1;
 
-			pstI2c_data[LINEAR_AGAIN_H_ADDR].u32RegAddr      = SC4336P_AGAIN_ADDR;
-			pstI2c_data[LINEAR_AGAIN_L_ADDR].u32RegAddr      = SC4336P_DGAIN_ADDR + 1;
-			pstI2c_data[LINEAR_DGAIN_ADDR].u32RegAddr      = SC4336P_DGAIN_ADDR;
-			pstI2c_data[LINEAR_D_FINEGAIN_ADDR].u32RegAddr = SC4336P_DGAIN_ADDR + 1;
+			pstI2c_data[LINEAR_AGAIN_ADDR].u32RegAddr      = SC831HAI_AGAIN_ADDR;
+			pstI2c_data[LINEAR_A_FINEGAIN_ADDR].u32RegAddr = SC831HAI_A_FINEGAIN_ADDR;
+			pstI2c_data[LINEAR_DGAIN_ADDR].u32RegAddr      = SC831HAI_DGAIN_ADDR;
+			pstI2c_data[LINEAR_D_FINEGAIN_ADDR].u32RegAddr = SC831HAI_D_FINEGAIN_ADDR;
 
-			pstI2c_data[LINEAR_VMAX_0_ADDR].u32RegAddr     = SC4336P_VMAX_ADDR;
-			pstI2c_data[LINEAR_VMAX_1_ADDR].u32RegAddr     = SC4336P_VMAX_ADDR + 1;
+			pstI2c_data[LINEAR_VMAX_0_ADDR].u32RegAddr     = SC831HAI_VMAX_ADDR;
+			pstI2c_data[LINEAR_VMAX_1_ADDR].u32RegAddr     = SC831HAI_VMAX_ADDR + 1;
+			pstI2c_data[LINEAR_HOLD_END].u32RegAddr     = SC831HAI_GROUP_HOLD_ADDR;
+			pstI2c_data[LINEAR_HOLD_END].u32Data = 0x30;
 			break;
 		default:
 			CVI_TRACE_SNS(CVI_DBG_ERR, "NOT support this mode!\n");
@@ -654,6 +693,14 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 			} else {
 				pstCfg0->snsCfg.astI2cData[i].bUpdate = CVI_TRUE;
 				pstCfg0->snsCfg.need_update = CVI_TRUE;
+			}
+		}
+		if (pstCfg0->snsCfg.need_update == CVI_TRUE) {
+			if (pstSnsState->enWDRMode == WDR_MODE_2To1_LINE) {
+				//TODO:
+			} else {
+				pstI2c_data[LINEAR_HOLD_START].bUpdate = CVI_TRUE;
+				pstI2c_data[LINEAR_HOLD_END].bUpdate = CVI_TRUE;
 			}
 		}
 		/* check update isp crop or not */
@@ -679,7 +726,7 @@ static CVI_S32 cmos_set_image_mode(VI_PIPE ViPipe, ISP_CMOS_SENSOR_IMAGE_MODE_S 
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
 
 	CMOS_CHECK_POINTER(pstSensorImageMode);
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
 
 	u8SensorImageMode = pstSnsState->u8ImgMode;
@@ -687,33 +734,20 @@ static CVI_S32 cmos_set_image_mode(VI_PIPE ViPipe, ISP_CMOS_SENSOR_IMAGE_MODE_S 
 
 	if (pstSensorImageMode->f32Fps <= 30) {
 		if (pstSnsState->enWDRMode == WDR_MODE_NONE) {
-			if (SC4336P_RES_IS_1440P(pstSensorImageMode->u16Width, pstSensorImageMode->u16Height)) {
-				if(pstSensorImageMode->u8LaneNum == 2) {
-					if(pstSensorImageMode->u8EnableMaster == ISP_SNS_NORMAL_MODE) {
-						u8SensorImageMode = SC4336P_MODE_1440P30;
-					} else if (pstSensorImageMode->u8EnableMaster == ISP_SNS_SLAVE_BY_FSYNC) {
-						u8SensorImageMode = SC4336P_SLAVE_MODE_1440P30;
+			if (SC831HAI_RES_IS_2160P(pstSensorImageMode->u16Width, pstSensorImageMode->u16Height)) {
+				if (pstSensorImageMode->u8LaneNum == 4) {
+					if (pstSensorImageMode->u8EnableMaster == 1) {
+						u8SensorImageMode = SC831HAI_MODE_2160P30_4L_MASTER;
+					} else if (pstSensorImageMode->u8EnableMaster == 0) {
+						u8SensorImageMode = SC831HAI_MODE_2160P30_4L_SLAVE;
 					} else {
-						CVI_TRACE_SNS(CVI_DBG_ERR, "Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n",
-							pstSensorImageMode->u16Width,
-							pstSensorImageMode->u16Height,
-							pstSensorImageMode->f32Fps,
-							pstSnsState->enWDRMode);
+						CVI_TRACE_SNS(CVI_DBG_ERR, "Invalid Master Enable: %d\n", pstSensorImageMode->u8EnableMaster);
 						return CVI_FAILURE;
 					}
-				} else if(pstSensorImageMode->u8LaneNum == 1) {
-					if(pstSensorImageMode->u8EnableMaster == ISP_SNS_NORMAL_MODE) {
-						u8SensorImageMode = SC4336P_1L_MODE_1440P20;
-					}  else {
-						CVI_TRACE_SNS(CVI_DBG_ERR, "Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n",
-							pstSensorImageMode->u16Width,
-							pstSensorImageMode->u16Height,
-							pstSensorImageMode->f32Fps,
-							pstSnsState->enWDRMode);
-						return CVI_FAILURE;
-					}
+				} else {
+					CVI_TRACE_SNS(CVI_DBG_ERR, "Current config only support 4lane mode \n");
+					return CVI_FAILURE;
 				}
-
 			} else {
 				CVI_TRACE_SNS(CVI_DBG_ERR, "Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n",
 				       pstSensorImageMode->u16Width,
@@ -743,31 +777,19 @@ static CVI_S32 cmos_set_image_mode(VI_PIPE ViPipe, ISP_CMOS_SENSOR_IMAGE_MODE_S 
 	return CVI_SUCCESS;
 }
 
-static CVI_VOID sensor_mirror_flip(VI_PIPE ViPipe, ISP_SNS_MIRRORFLIP_TYPE_E eSnsMirrorFlip)
-{
-	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
-
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
-	CMOS_CHECK_POINTER_VOID(pstSnsState);
-	if (pstSnsState->bInit == CVI_TRUE && g_aeSc4336p_MirrorFip[ViPipe] != eSnsMirrorFlip) {
-		sc4336p_mirror_flip(ViPipe, eSnsMirrorFlip);
-		g_aeSc4336p_MirrorFip[ViPipe] = eSnsMirrorFlip;
-	}
-}
-
 static CVI_VOID sensor_global_init(VI_PIPE ViPipe)
 {
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
-	const SC4336P_MODE_S *pstMode = CVI_NULL;
+	const SC831HAI_MODE_S *pstMode = CVI_NULL;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER_VOID(pstSnsState);
 
 	pstSnsState->bInit = CVI_FALSE;
 	pstSnsState->bSyncInit = CVI_FALSE;
-	pstSnsState->u8ImgMode = SC4336P_MODE_1440P30;
+	pstSnsState->u8ImgMode = SC831HAI_MODE_2160P30_4L_MASTER;
 	pstSnsState->enWDRMode = WDR_MODE_NONE;
-	pstMode = &g_astSC4336P_mode[pstSnsState->u8ImgMode];
+	pstMode = &g_astSC831HAI_mode[pstSnsState->u8ImgMode];
 	pstSnsState->u32FLStd  = pstMode->u32VtsDef;
 	pstSnsState->au32FL[0] = pstMode->u32VtsDef;
 	pstSnsState->au32FL[1] = pstMode->u32VtsDef;
@@ -781,8 +803,8 @@ static CVI_S32 sensor_rx_attr(VI_PIPE ViPipe, SNS_COMBO_DEV_ATTR_S *pstRxAttr)
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
 	SNS_COMBO_DEV_ATTR_S *pstRxAttrSrc = CVI_NULL;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pstSnsState);
-	SC4336P_SENSOR_GET_COMBO(ViPipe, pstRxAttrSrc);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	SC831HAI_SENSOR_GET_COMBO(ViPipe, pstRxAttrSrc);
 
 	CMOS_CHECK_POINTER(pstSnsState);
 	CMOS_CHECK_POINTER(pstRxAttr);
@@ -790,15 +812,14 @@ static CVI_S32 sensor_rx_attr(VI_PIPE ViPipe, SNS_COMBO_DEV_ATTR_S *pstRxAttr)
 
 	memcpy(pstRxAttr, pstRxAttrSrc, sizeof(*pstRxAttr));
 
-	pstRxAttr->img_size.start_x = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.s32X;
-	pstRxAttr->img_size.start_y = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.s32Y;
-	pstRxAttr->img_size.active_w = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.u32Width;
-	pstRxAttr->img_size.active_h = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.u32Height;
-	pstRxAttr->img_size.width = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stSnsSize.u32Width;
-	pstRxAttr->img_size.height = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stSnsSize.u32Height;
-	pstRxAttr->img_size.max_width = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stMaxSize.u32Width;
-	pstRxAttr->img_size.max_height = g_astSC4336P_mode[pstSnsState->u8ImgMode].astImg[0].stMaxSize.u32Height;
-
+	pstRxAttr->img_size.start_x =  g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.s32X;
+	pstRxAttr->img_size.start_y =  g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.s32Y;
+	pstRxAttr->img_size.active_w =  g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.u32Width;
+	pstRxAttr->img_size.active_h =  g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stWndRect.u32Height;
+	pstRxAttr->img_size.width = g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stSnsSize.u32Width;
+	pstRxAttr->img_size.height = g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stSnsSize.u32Height;
+	pstRxAttr->img_size.max_width = g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stMaxSize.u32Width;
+	pstRxAttr->img_size.max_height = g_astSC831HAI_mode[pstSnsState->u8ImgMode].astImg[0].stMaxSize.u32Height;
 	if (pstSnsState->enWDRMode == WDR_MODE_NONE) {
 		pstRxAttr->mipi_attr.wdr_mode = CVI_MIPI_WDR_MODE_NONE;
 	}
@@ -810,15 +831,15 @@ static CVI_S32 sensor_rx_attr(VI_PIPE ViPipe, SNS_COMBO_DEV_ATTR_S *pstRxAttr)
 static CVI_S32 sensor_patch_rx_attr(VI_PIPE ViPipe, RX_INIT_ATTR_S *pstRxInitAttr)
 {
 	int i;
-	SNS_COMBO_DEV_ATTR_S *pstRxAttr = CVI_NULL;
+	SNS_COMBO_DEV_ATTR_S* pstRxAttr = malloc(sizeof(SNS_COMBO_DEV_ATTR_S));
 
-	if (!g_pastSc4336pComboDevArray[ViPipe]) {
+	if(!g_pastSC831HAIComboDevArray[ViPipe]) {
 		pstRxAttr = malloc(sizeof(SNS_COMBO_DEV_ATTR_S));
 	} else {
-		SC4336P_SENSOR_GET_COMBO(ViPipe, pstRxAttr);
+		SC831HAI_SENSOR_GET_COMBO(ViPipe, pstRxAttr);
 	}
-	memcpy(pstRxAttr, &sc4336p_rx_attr, sizeof(SNS_COMBO_DEV_ATTR_S));
-	SC4336P_SENSOR_SET_COMBO(ViPipe, pstRxAttr);
+	memcpy(pstRxAttr, &sc831hai_rx_attr, sizeof(SNS_COMBO_DEV_ATTR_S));
+	SC831HAI_SENSOR_SET_COMBO(ViPipe, pstRxAttr);
 
 	CMOS_CHECK_POINTER(pstRxInitAttr);
 
@@ -847,17 +868,16 @@ static CVI_S32 sensor_patch_rx_attr(VI_PIPE ViPipe, RX_INIT_ATTR_S *pstRxInitAtt
 		}
 	}
 	pstRxAttr = CVI_NULL;
-
 	return CVI_SUCCESS;
 }
 
-void sc4336p_exit(VI_PIPE ViPipe)
+void sc831hai_exit(VI_PIPE ViPipe)
 {
-	if (g_pastSc4336pComboDevArray[ViPipe]) {
-		free(g_pastSc4336pComboDevArray[ViPipe]);
-		g_pastSc4336pComboDevArray[ViPipe] = CVI_NULL;
+	if(g_pastSC831HAIComboDevArray[ViPipe]) {
+		free(g_pastSC831HAIComboDevArray[ViPipe]);
+		g_pastSC831HAIComboDevArray[ViPipe] = CVI_NULL;
 	}
-	sc4336p_i2c_exit(ViPipe);
+	sc831hai_i2c_exit(ViPipe);
 }
 
 static CVI_S32 cmos_init_sensor_exp_function(ISP_SENSOR_EXP_FUNC_S *pstSensorExpFunc)
@@ -866,8 +886,8 @@ static CVI_S32 cmos_init_sensor_exp_function(ISP_SENSOR_EXP_FUNC_S *pstSensorExp
 
 	memset(pstSensorExpFunc, 0, sizeof(ISP_SENSOR_EXP_FUNC_S));
 
-	pstSensorExpFunc->pfn_cmos_sensor_init = sc4336p_init;
-	pstSensorExpFunc->pfn_cmos_sensor_exit = sc4336p_exit;
+	pstSensorExpFunc->pfn_cmos_sensor_init = sc831hai_init;
+	pstSensorExpFunc->pfn_cmos_sensor_exit = sc831hai_exit;
 	pstSensorExpFunc->pfn_cmos_sensor_global_init = sensor_global_init;
 	pstSensorExpFunc->pfn_cmos_set_image_mode = cmos_set_image_mode;
 	pstSensorExpFunc->pfn_cmos_set_wdr_mode = cmos_set_wdr_mode;
@@ -884,17 +904,17 @@ static CVI_S32 cmos_init_sensor_exp_function(ISP_SENSOR_EXP_FUNC_S *pstSensorExp
  ****************************************************************************/
 static CVI_VOID sensor_patch_i2c_addr(VI_PIPE ViPipe, CVI_S32 s32I2cAddr)
 {
-	if (SC4336P_I2C_ADDR_IS_VALID(s32I2cAddr))
-		g_aunSc4336p_AddrInfo[ViPipe].s8I2cAddr = s32I2cAddr;
+	if (SC831HAI_I2C_ADDR_IS_VALID(s32I2cAddr))
+		g_aunSC831HAI_AddrInfo[ViPipe].s8I2cAddr = s32I2cAddr;
 	else {
 		CVI_TRACE_SNS(CVI_DBG_ERR, "I2C addr input error ,please check [0x%x]\n", s32I2cAddr);
-		g_aunSc4336p_AddrInfo[ViPipe].s8I2cAddr = SC4336P_I2C_ADDR_2;
+		g_aunSC831HAI_AddrInfo[ViPipe].s8I2cAddr = SC831HAI_I2C_ADDR_1;
 	}
 }
 
-static CVI_S32 sc4336p_set_bus_info(VI_PIPE ViPipe, ISP_SNS_COMMBUS_U unSNSBusInfo)
+static CVI_S32 sc831hai_set_bus_info(VI_PIPE ViPipe, ISP_SNS_COMMBUS_U unSNSBusInfo)
 {
-	g_aunSC4336P_BusInfo[ViPipe].s8I2cDev = unSNSBusInfo.s8I2cDev;
+	g_aunSC831HAI_BusInfo[ViPipe].s8I2cDev = unSNSBusInfo.s8I2cDev;
 
 	return CVI_SUCCESS;
 }
@@ -903,7 +923,7 @@ static CVI_S32 sensor_ctx_init(VI_PIPE ViPipe)
 {
 	ISP_SNS_STATE_S *pastSnsStateCtx = CVI_NULL;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
 
 	if (pastSnsStateCtx == CVI_NULL) {
 		pastSnsStateCtx = (ISP_SNS_STATE_S *)malloc(sizeof(ISP_SNS_STATE_S));
@@ -915,7 +935,7 @@ static CVI_S32 sensor_ctx_init(VI_PIPE ViPipe)
 
 	memset(pastSnsStateCtx, 0, sizeof(ISP_SNS_STATE_S));
 
-	SC4336P_SENSOR_SET_CTX(ViPipe, pastSnsStateCtx);
+	SC831HAI_SENSOR_SET_CTX(ViPipe, pastSnsStateCtx);
 
 	return CVI_SUCCESS;
 }
@@ -924,9 +944,9 @@ static CVI_VOID sensor_ctx_exit(VI_PIPE ViPipe)
 {
 	ISP_SNS_STATE_S *pastSnsStateCtx = CVI_NULL;
 
-	SC4336P_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
+	SC831HAI_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
 	SENSOR_FREE(pastSnsStateCtx);
-	SC4336P_SENSOR_RESET_CTX(ViPipe);
+	SC831HAI_SENSOR_RESET_CTX(ViPipe);
 }
 
 static CVI_S32 sensor_register_callback(VI_PIPE ViPipe, ALG_LIB_S *pstAeLib, ALG_LIB_S *pstAwbLib)
@@ -945,7 +965,7 @@ static CVI_S32 sensor_register_callback(VI_PIPE ViPipe, ALG_LIB_S *pstAeLib, ALG
 	if (s32Ret != CVI_SUCCESS)
 		return CVI_FAILURE;
 
-	stSnsAttrInfo.eSensorId = SC4336P_ID;
+	stSnsAttrInfo.eSensorId = SC831HAI_ID;
 
 	s32Ret  = cmos_init_sensor_exp_function(&stIspRegister.stSnsExp);
 	s32Ret |= CVI_ISP_SensorRegCallBack(ViPipe, &stSnsAttrInfo, &stIspRegister);
@@ -981,19 +1001,19 @@ static CVI_S32 sensor_unregister_callback(VI_PIPE ViPipe, ALG_LIB_S *pstAeLib, A
 	CMOS_CHECK_POINTER(pstAeLib);
 	CMOS_CHECK_POINTER(pstAwbLib);
 
-	s32Ret = CVI_ISP_SensorUnRegCallBack(ViPipe, SC4336P_ID);
+	s32Ret = CVI_ISP_SensorUnRegCallBack(ViPipe, SC831HAI_ID);
 	if (s32Ret != CVI_SUCCESS) {
 		CVI_TRACE_SNS(CVI_DBG_ERR, "sensor unregister callback function failed!\n");
 		return s32Ret;
 	}
 
-	s32Ret = CVI_AE_SensorUnRegCallBack(ViPipe, pstAeLib, SC4336P_ID);
+	s32Ret = CVI_AE_SensorUnRegCallBack(ViPipe, pstAeLib, SC831HAI_ID);
 	if (s32Ret != CVI_SUCCESS) {
 		CVI_TRACE_SNS(CVI_DBG_ERR, "sensor unregister callback function to ae lib failed!\n");
 		return s32Ret;
 	}
 
-	s32Ret = CVI_AWB_SensorUnRegCallBack(ViPipe, pstAwbLib, SC4336P_ID);
+	s32Ret = CVI_AWB_SensorUnRegCallBack(ViPipe, pstAwbLib, SC831HAI_ID);
 	if (s32Ret != CVI_SUCCESS) {
 		CVI_TRACE_SNS(CVI_DBG_ERR, "sensor unregister callback function to awb lib failed!\n");
 		return s32Ret;
@@ -1015,27 +1035,27 @@ static CVI_S32 sensor_set_init(VI_PIPE ViPipe, ISP_INIT_ATTR_S *pstInitAttr)
 	g_au16InitWBGain[ViPipe][2] = pstInitAttr->u16WBBgain;
 	g_au16SampleRgain[ViPipe] = pstInitAttr->u16SampleRgain;
 	g_au16SampleBgain[ViPipe] = pstInitAttr->u16SampleBgain;
-	g_au16SC4336P_GainMode[ViPipe] = pstInitAttr->enGainMode;
-	g_au16SC4336P_L2SMode[ViPipe] = pstInitAttr->enL2SMode;
+	g_au16SC831HAI_GainMode[ViPipe] = pstInitAttr->enGainMode;
+	g_au16SC831HAI_L2SMode[ViPipe] = pstInitAttr->enL2SMode;
 
 	return CVI_SUCCESS;
 }
 
-ISP_SNS_OBJ_S stSnsSC4336P_Obj = {
-	.pfnRegisterCallback	= sensor_register_callback,
-	.pfnUnRegisterCallback	= sensor_unregister_callback,
-	.pfnStandby		= sc4336p_standby,
-	.pfnRestart		= sc4336p_restart,
-	.pfnMirrorFlip		= sensor_mirror_flip,
-	.pfnWriteReg		= sc4336p_write_register,
-	.pfnReadReg		= sc4336p_read_register,
-	.pfnSetBusInfo		= sc4336p_set_bus_info,
-	.pfnSetInit		= sensor_set_init,
+ISP_SNS_OBJ_S stSnsSC831HAI_Obj = {
+	.pfnRegisterCallback    = sensor_register_callback,
+	.pfnUnRegisterCallback  = sensor_unregister_callback,
+	.pfnStandby             = sc831hai_standby,
+	.pfnRestart             = sc831hai_restart,
+	.pfnMirrorFlip          = sc831hai_mirror_flip,
+	.pfnWriteReg            = sc831hai_write_register,
+	.pfnReadReg             = sc831hai_read_register,
+	.pfnSetBusInfo          = sc831hai_set_bus_info,
+	.pfnSetInit             = sensor_set_init,
 	.pfnPatchRxAttr		= sensor_patch_rx_attr,
 	.pfnPatchI2cAddr	= sensor_patch_i2c_addr,
 	.pfnGetRxAttr		= sensor_rx_attr,
 	.pfnExpSensorCb		= cmos_init_sensor_exp_function,
 	.pfnExpAeCb		= cmos_init_ae_exp_function,
-	.pfnSnsProbe		= sc4336p_probe,
+	.pfnSnsProbe		= sc831hai_probe,
 };
 

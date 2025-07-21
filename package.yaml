@@ -1,5 +1,5 @@
 ## 第一部分： 基础信息
-name: cvi_sensor                                   # <必选项> 包名称 （符合C语言变量命名规则），长度少于等于64字节
+name: SensorSupportList                                   # <必选项> 包名称 （符合C语言变量命名规则），长度少于等于64字节
 version: develop                                    # <必选项> 组件版本号
 description: Cvitek sensor driver SDK library.      # <必选项> 建议至少20字以上
 type: common                                          # <必选项> 组件类型，为：solution, chip, board, common, sdk
@@ -113,6 +113,7 @@ build_config:
     - ov_os08b10
     - ov_ov2736
     - ov_ov4689
+    - ov_ov48b2q
     - ov_ov6211
     - ov_ov7251
     - ov_ov9282
@@ -131,6 +132,7 @@ build_config:
     - sms_sc501ai_2L
     - sms_sc531ai_2L
     - sms_sc635ai
+    - sms_sc831hai
     - sms_sc1330
     - sms_sc3332
     - sms_sc3335
@@ -190,6 +192,7 @@ source_file:
   - ov_os08b10/*.c ? <CONFIG_SENSOR_OV_OS08B10>
   - ov_ov2736/*.c ? <CONFIG_SENSOR_OV_OV2736>
   - ov_ov4689/*.c ? <CONFIG_SENSOR_OV_OV4689>
+  - ov_ov48b2q/*.c ? <CONFIG_SENSOR_OV_OV48B2Q>
   - ov_ov6211/*.c ? <CONFIG_SENSOR_OV_OV6211>
   - ov_ov7251/*.c ? <CONFIG_SENSOR_OV_OV7251>
   - ov_ov9282/*.c ? <CONFIG_SENSOR_OV_OV9282>
@@ -208,6 +211,7 @@ source_file:
   - sms_sc501ai_2L/*.c ? <CONFIG_SENSOR_SMS_SC501AI_2L>
   - sms_sc531ai_2L/*.c ? <CONFIG_SENSOR_SMS_SC531AI_2L>
   - sms_sc635ai/*.c ? <CONFIG_SENSOR_SMS_SC635AI>
+  - sms_sc831hai/*.c ? <CONFIG_SENSOR_SMS_SC831HAI>
   - sms_sc1330/*.c ? <CONFIG_SENSOR_SMS_SC1330>
   - sms_sc3332/*.c ? <CONFIG_SENSOR_SMS_SC3332>
   - sms_sc3335/*.c ? <CONFIG_SENSOR_SMS_SC3335>

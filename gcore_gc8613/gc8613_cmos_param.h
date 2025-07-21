@@ -136,8 +136,8 @@ static const GC8613_MODE_S g_astGc8613_mode[GC8613_MODE_NUM] = {
 			.u32Step = 1,
 		},
 	},
-	[GC8613_MODE_8M60_30] = {
-		.name = "8M60_30",
+	[GC8613_MODE_8M60] = {
+		.name = "8M60",
 		.astImg[0] = {
 			.stSnsSize = {
 				.u32Width = 3840,
@@ -154,13 +154,13 @@ static const GC8613_MODE_S g_astGc8613_mode[GC8613_MODE_NUM] = {
 				.u32Height = 2160,
 			},
 		},
-		.f32MaxFps = 30,
+		.f32MaxFps = 60,
 		.f32MinFps = 4.12, /* 0x8ca * 30 / 3fff */
 		.u32HtsDef = 0x0278,
-		.u32VtsDef = 0x1224,
+		.u32VtsDef = 0x0912,
 		.stExp[0] = {
 			.u16Min = 1,
-			.u16Max = 0x1224 - 1,
+			.u16Max = 0x0912 - 1,
 			.u16Def = 1,
 			.u16Step = 1,
 		},

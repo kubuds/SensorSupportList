@@ -102,6 +102,9 @@ ov_ov2736:
 ov_ov4689:
 	$(call MAKE_SENSOR, ${@})
 
+ov_ov48b2q:
+	$(call MAKE_SENSOR, ${@})
+
 ov_ov6211:
 	$(call MAKE_SENSOR, ${@})
 
@@ -157,6 +160,9 @@ sms_sc531ai_2L:
 	$(call MAKE_SENSOR, ${@})
 
 sms_sc635ai:
+	$(call MAKE_SENSOR, ${@})
+
+sms_sc831hai:
 	$(call MAKE_SENSOR, ${@})
 
 sms_sc1330:

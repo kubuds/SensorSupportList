@@ -670,6 +670,7 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 		/* check update isp crop or not */
 		pstCfg0->ispCfg.need_update = (sensor_cmp_wdr_size(&pstCfg0->ispCfg, &pstCfg1->ispCfg) ?
 				CVI_TRUE : CVI_FALSE);
+		pstCfg0->ispCfg.u8DelayFrmNum = 1;
 	}
 
 	pstSnsRegsInfo->bConfig = CVI_FALSE;

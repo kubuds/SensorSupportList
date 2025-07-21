@@ -955,7 +955,7 @@ static CVI_S32 cmos_set_image_mode(VI_PIPE ViPipe, ISP_CMOS_SENSOR_IMAGE_MODE_S 
 	} else if (pstSensorImageMode->f32Fps == 60) {
 		if (pstSnsState->enWDRMode == WDR_MODE_NONE) {
 			if (GC8613_RES_IS_8M(pstSensorImageMode->u16Width, pstSensorImageMode->u16Height))
-				u8SensorImageMode = GC8613_MODE_8M60_30;
+				u8SensorImageMode = GC8613_MODE_8M60;
 			else {
 				goto unsupport_mode;
 			}
@@ -1044,7 +1044,7 @@ static CVI_S32 sensor_rx_attr(VI_PIPE ViPipe, SNS_COMBO_DEV_ATTR_S *pstRxAttr)
 		pstRxAttr->mipi_attr.dphy.hs_settle = 14;
 	} else {
 		pstRxAttr->mipi_attr.wdr_mode = CVI_MIPI_WDR_MODE_NONE;
-		if (u8SensorImageMode == GC8613_MODE_8M60_30)
+		if (u8SensorImageMode == GC8613_MODE_8M60)
 			pstRxAttr->mclk.freq = CAMPLL_FREQ_24M;
 	}
 

@@ -12,7 +12,7 @@
 static void gc8613_linear_2m30_init(VI_PIPE ViPipe);
 static void gc8613_linear_8m30_init(VI_PIPE ViPipe);
 static void gc8613_linear_8m25_init(VI_PIPE ViPipe);
-static void gc8613_linear_8m60_30_init(VI_PIPE ViPipe);
+static void gc8613_linear_8m60_init(VI_PIPE ViPipe);
 static void gc8613_wdr_8m30_2to1_init(VI_PIPE ViPipe);
 
 const CVI_U32 gc8613_addr_byte = 2;
@@ -154,15 +154,15 @@ void gc8613_init(VI_PIPE ViPipe)
 			gc8613_linear_8m25_init(ViPipe);
 		else if (u8ImgMode == GC8613_MODE_2M30)
 			gc8613_linear_2m30_init(ViPipe);
-		else if (u8ImgMode == GC8613_MODE_8M60_30)
-			gc8613_linear_8m60_30_init(ViPipe);
+		else if (u8ImgMode == GC8613_MODE_8M60)
+			gc8613_linear_8m60_init(ViPipe);
 		else {
 		}
 	}
 	g_pastGc8613[ViPipe]->bInit = CVI_TRUE;
 }
 
-static void gc8613_linear_8m60_30_init(VI_PIPE ViPipe)
+static void gc8613_linear_8m60_init(VI_PIPE ViPipe)
 {
 	// 24M 60fps setting changed vts(0x340 0x341) to output 30fps to increase vblanking time(17ms)
 	delay_ms(4);
@@ -189,8 +189,8 @@ static void gc8613_linear_8m60_30_init(VI_PIPE ViPipe)
 	gc8613_write_register(ViPipe, 0x0343, 0x78);
 	gc8613_write_register(ViPipe, 0x0259, 0x08);
 	gc8613_write_register(ViPipe, 0x025a, 0x96);
-	gc8613_write_register(ViPipe, 0x0340, 0x12); // vts 30fps
-	gc8613_write_register(ViPipe, 0x0341, 0x24);
+	gc8613_write_register(ViPipe, 0x0340, 0x09); // vts 30fps
+	gc8613_write_register(ViPipe, 0x0341, 0x12);
 	gc8613_write_register(ViPipe, 0x0351, 0x00);
 	gc8613_write_register(ViPipe, 0x0345, 0x02);
 	gc8613_write_register(ViPipe, 0x0347, 0x02);

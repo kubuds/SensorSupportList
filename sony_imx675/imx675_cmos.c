@@ -76,8 +76,8 @@ static CVI_S32 cmos_get_wdr_size(VI_PIPE ViPipe, ISP_SNS_ISP_INFO_S *pstIspCfg);
 #define IMX675_HOLD_ADDR		0x3001
 #define IMX675_SHR0_ADDR		0x3050 //Shutter setting of LEF
 #define IMX675_SHR1_ADDR		0x3054
-#define IMX675_GAIN_ADDR		0x6750
-#define IMX675_GAIN1_ADDR		0x6752
+#define IMX675_GAIN_ADDR		0x3070
+#define IMX675_GAIN1_ADDR		0x3072
 #define IMX675_HCG_ADDR			0x3030
 #define IMX675_VMAX_ADDR		0x3028 //Number of vertical lines per 1 Frame
 #define IMX675_RHS1_ADDR		0x3060 //Readout timing setting of SEF1
@@ -187,7 +187,7 @@ static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSns
 		pstAeSnsDft->u32InitExposure = g_au32InitExposure[ViPipe] ? g_au32InitExposure[ViPipe] : 52000;
 		pstAeSnsDft->u32InitAESpeed = 64;
 		pstAeSnsDft->u32InitAETolerance = 5;
-		pstAeSnsDft->u32AEResponseFrame = 3;
+		pstAeSnsDft->u32AEResponseFrame = 4;
 		pstAeSnsDft->u32SnsResponseFrame = 5;
 		if (genFSWDRMode[ViPipe] == ISP_FSWDR_LONG_FRAME_MODE) {
 			pstAeSnsDft->u8AeCompensation = 64;
