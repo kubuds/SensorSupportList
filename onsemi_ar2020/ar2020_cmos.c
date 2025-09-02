@@ -24,6 +24,7 @@
 #define SENSOR_AR2020_HEIGHT 3840
 #define AR2020_I2C_ADDR_1 0x36
 #define AR2020_I2C_ADDR_2 0x32
+#define AR2020_LINE_LEN_PCK_ADDR 0x0342
 #define AR2020_I2C_ADDR_IS_VALID(addr)	((addr) == AR2020_I2C_ADDR_1 || (addr) == AR2020_I2C_ADDR_2)
 
 #define AR2020_EXPACCURACY                    (1)
@@ -200,7 +201,7 @@ static CVI_S32 cmos_inttime_update(VI_PIPE ViPipe, CVI_U32 *u32IntTime)
 {
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
 	ISP_SNS_REGS_INFO_S *pstSnsRegsInfo = CVI_NULL;
-	CVI_U32 u32TmpIntTime, u32MinTime, u32MaxTime;
+	CVI_U32 u32TmpIntTime, u32MinTime, u32MaxTime, u32LineLenPck;
 
 	AR2020_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER(pstSnsState);
@@ -217,8 +218,14 @@ static CVI_S32 cmos_inttime_update(VI_PIPE ViPipe, CVI_U32 *u32IntTime)
 	u32TmpIntTime = (u32IntTime[0] > u32MaxTime) ? u32MaxTime : u32IntTime[0];
 	u32TmpIntTime = (u32TmpIntTime < u32MinTime) ? u32MinTime : u32TmpIntTime;
 
-	pstSnsRegsInfo->astI2cData[LINEAR_SHS1_0_ADDR].u32Data = (u32TmpIntTime & 0xFFFF); //bit[15:12]
+	/* Integration time specified in multiples of line_length_pck */
+	u32LineLenPck = ar2020_read_register(ViPipe, AR2020_LINE_LEN_PCK_ADDR);
+	if (u32TmpIntTime % u32LineLenPck != 0 ){
+		u32TmpIntTime = (u32TmpIntTime / u32LineLenPck) * u32LineLenPck;
+	}
 
+	u32IntTime[0] = u32TmpIntTime;
+	pstSnsRegsInfo->astI2cData[LINEAR_SHS1_0_ADDR].u32Data = (u32TmpIntTime & 0xFFFF);
 	return CVI_SUCCESS;
 }
 

@@ -39,6 +39,9 @@ cvsens_cv2003:
 gcore_gc02m1:
 	$(call MAKE_SENSOR, ${@})
 
+gcore_gc0308:
+	$(call MAKE_SENSOR, ${@})
+
 gcore_gc1054:
 	$(call MAKE_SENSOR, ${@})
 
@@ -141,6 +144,9 @@ sms_sc301iot:
 sms_sc233hgs:
 	$(call MAKE_SENSOR, ${@})
 
+sms_sc235hai:
+	$(call MAKE_SENSOR, ${@})
+
 sms_sc401ai:
 	$(call MAKE_SENSOR, ${@})
 
@@ -166,6 +172,12 @@ sms_sc831hai:
 	$(call MAKE_SENSOR, ${@})
 
 sms_sc1330:
+	$(call MAKE_SENSOR, ${@})
+
+sms_sc1346_1L:
+	$(call MAKE_SENSOR, ${@})
+
+sms_sc1346_1L_slave:
 	$(call MAKE_SENSOR, ${@})
 
 sms_sc3335:
@@ -196,6 +208,9 @@ soi_q03:
 	$(call MAKE_SENSOR, ${@})
 
 soi_k06:
+	$(call MAKE_SENSOR, ${@})
+
+sony_imx135:
 	$(call MAKE_SENSOR, ${@})
 
 sony_imx307:

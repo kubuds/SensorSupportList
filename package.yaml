@@ -92,6 +92,7 @@ build_config:
     - brigates_bg0808
     - cvsens_cv2003
     - gcore_gc02m1
+    - gcore_gc0308
     - gcore_gc1054
     - gcore_gc2053
     - gcore_gc2053_slave
@@ -124,6 +125,7 @@ build_config:
     - sms_sc035gs_1L
     - sms_sc035hgs
     - sms_sc233hgs
+    - sms_sc235hai
     - sms_sc200ai
     - sms_sc301iot
     - sms_sc401ai
@@ -145,6 +147,7 @@ build_config:
     - soi_f37p
     - soi_k06
     - soi_q03
+    - sony_imx135
     - sony_imx307
     - sony_imx307_slave
     - sony_imx307_2L
@@ -171,6 +174,7 @@ source_file:
   - brigates_bg0808/*.c ? <CONFIG_SENSOR_BRIGATES_BG0808>
   - cvsens_cv2003/*.c ? <CONFIG_SENSOR_CVSENS_CV2003>
   - gcore_gc02m1/*.c ? <CONFIG_SENSOR_GCORE_GC02M1>
+  - gcore_gc0308/*.c ? <CONFIG_SENSOR_GCORE_GC0308>
   - gcore_gc1054/*.c ? <CONFIG_SENSOR_GCORE_GC1054>
   - gcore_gc2053/*.c ? <CONFIG_SENSOR_GCORE_GC2053>
   - gcore_gc2053_slave/*.c ? <CONFIG_SENSOR_GCORE_GC2053_SLAVE>
@@ -203,6 +207,7 @@ source_file:
   - sms_sc035gs_1L/*.c ? <CONFIG_SENSOR_SMS_SC035GS_1L>
   - sms_sc035hgs/*.c ? <CONFIG_SENSOR_SMS_SC035HGS>
   - sms_sc233hgs/*.c ? <CONFIG_SENSOR_SMS_SC233HGS>
+  - sms_sc235hai/*.c ? <CONFIG_SENSOR_SMS_SC235HAI>
   - sms_sc200ai/*.c ? <CONFIG_SENSOR_SMS_SC200AI>
   - sms_sc301iot/*.c ? <CONFIG_SENSOR_SMS_SC301IOT>
   - sms_sc401ai/*.c ? <CONFIG_SENSOR_SMS_SC401AI>
@@ -213,6 +218,8 @@ source_file:
   - sms_sc635ai/*.c ? <CONFIG_SENSOR_SMS_SC635AI>
   - sms_sc831hai/*.c ? <CONFIG_SENSOR_SMS_SC831HAI>
   - sms_sc1330/*.c ? <CONFIG_SENSOR_SMS_SC1330>
+  - sms_sc1346_1L/*.c ? <CONFIG_SENSOR_SMS_SC1346_1L>
+  - sms_sc1346_1L_slave/*.c ? <CONFIG_SENSOR_SMS_SC1346_1L_SLAVE>
   - sms_sc3332/*.c ? <CONFIG_SENSOR_SMS_SC3332>
   - sms_sc3335/*.c ? <CONFIG_SENSOR_SMS_SC3335>
   - sms_sc3336/*.c ? <CONFIG_SENSOR_SMS_SC3336>
@@ -224,6 +231,7 @@ source_file:
   - soi_f37p/*.c ? <CONFIG_SENSOR_SOI_F37P>
   - soi_k06/*.c ? <CONFIG_SENSOR_SOI_K06>
   - soi_q03/*.c ? <CONFIG_SENSOR_SOI_Q03>
+  - sony_imx135/*.c ? <CONFIG_SENSOR_SONY_IMX135>
   - sony_imx307/*.c ? <CONFIG_SENSOR_SONY_IMX307>
   - sony_imx307_slave/*.c ? <CONFIG_SENSOR_SONY_IMX307_SLAVE>
   - sony_imx307_2L/*.c ? <CONFIG_SENSOR_SONY_IMX307_2L>
