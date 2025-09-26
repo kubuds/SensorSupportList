@@ -65,36 +65,6 @@ void imx135_default_reg_init(VI_PIPE ViPipe)
 	}
 }
 
-void imx135_mirror_flip(VI_PIPE ViPipe, ISP_SNS_MIRRORFLIP_TYPE_E eSnsMirrorFlip)
-{
-	CVI_U8 u8Filp = 0;
-	CVI_U8 u8Mirror = 0;
-	CVI_U32 val = 0;
-
-	switch (eSnsMirrorFlip) {
-	case ISP_SNS_NORMAL:
-		break;
-	case ISP_SNS_MIRROR:
-		u8Mirror = 1;
-		break;
-	case ISP_SNS_FLIP:
-		u8Filp = 1;
-		break;
-	case ISP_SNS_MIRROR_FLIP:
-		u8Filp = 1;
-		u8Mirror = 1;
-		break;
-	default:
-		return;
-	}
-
-	val |= u8Mirror << 1;
-	val |= u8Filp << 2;
-
-	imx135_write_register(ViPipe, 0x0101, val);
-
-}
-
 void imx135_init(VI_PIPE ViPipe)
 {
 	WDR_MODE_E        enWDRMode;
@@ -223,25 +193,25 @@ static void imx135_linear_8M25_init(VI_PIPE ViPipe)
 	imx135_write_register(ViPipe, 0x0342, 0x11);
 	imx135_write_register(ViPipe, 0x0343, 0xDC);
 	imx135_write_register(ViPipe, 0x0344, 0x00);
-	imx135_write_register(ViPipe, 0x0345, 0xB8);
+	imx135_write_register(ViPipe, 0x0345, 0xB4);
 	imx135_write_register(ViPipe, 0x0346, 0x01);
-	imx135_write_register(ViPipe, 0x0347, 0xE0);
+	imx135_write_register(ViPipe, 0x0347, 0xDC);
 	imx135_write_register(ViPipe, 0x0348, 0x0F);
-	imx135_write_register(ViPipe, 0x0349, 0xB7);
+	imx135_write_register(ViPipe, 0x0349, 0xBB);
 	imx135_write_register(ViPipe, 0x034A, 0x0A);
-	imx135_write_register(ViPipe, 0x034B, 0x4F);
+	imx135_write_register(ViPipe, 0x034B, 0x53);
 	imx135_write_register(ViPipe, 0x034C, 0x0F);
-	imx135_write_register(ViPipe, 0x034D, 0x00);
+	imx135_write_register(ViPipe, 0x034D, 0x08);
 	imx135_write_register(ViPipe, 0x034E, 0x08);
-	imx135_write_register(ViPipe, 0x034F, 0x70);
+	imx135_write_register(ViPipe, 0x034F, 0x78);
 	imx135_write_register(ViPipe, 0x0350, 0x00);
 	imx135_write_register(ViPipe, 0x0351, 0x00);
 	imx135_write_register(ViPipe, 0x0352, 0x00);
 	imx135_write_register(ViPipe, 0x0353, 0x00);
 	imx135_write_register(ViPipe, 0x0354, 0x0F);
-	imx135_write_register(ViPipe, 0x0355, 0x00);
+	imx135_write_register(ViPipe, 0x0355, 0x08);
 	imx135_write_register(ViPipe, 0x0356, 0x08);
-	imx135_write_register(ViPipe, 0x0357, 0x70);
+	imx135_write_register(ViPipe, 0x0357, 0x78);
 	imx135_write_register(ViPipe, 0x301D, 0x30);
 	imx135_write_register(ViPipe, 0x3310, 0x10);
 	imx135_write_register(ViPipe, 0x3311, 0x70);

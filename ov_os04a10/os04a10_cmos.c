@@ -1544,6 +1544,11 @@ static CVI_S32 sensor_set_init(VI_PIPE ViPipe, ISP_INIT_ATTR_S *pstInitAttr)
 	return CVI_SUCCESS;
 }
 
+static CVI_S32 sensor_probe(VI_PIPE ViPipe)
+{
+	return os04a10_probe(ViPipe);
+}
+
 ISP_SNS_OBJ_S stSnsOs04a10_Obj = {
 	.pfnRegisterCallback    = sensor_register_callback,
 	.pfnUnRegisterCallback  = sensor_unregister_callback,
@@ -1559,5 +1564,6 @@ ISP_SNS_OBJ_S stSnsOs04a10_Obj = {
 	.pfnGetRxAttr		= sensor_rx_attr,
 	.pfnExpSensorCb		= cmos_init_sensor_exp_function,
 	.pfnExpAeCb		= cmos_init_ae_exp_function,
+	.pfnSnsProbe            = sensor_probe,
 };
 

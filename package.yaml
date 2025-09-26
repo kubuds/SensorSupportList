@@ -245,7 +245,7 @@ source_file:
   - sony_imx415/*.c ? <CONFIG_SENSOR_SONY_IMX415>
   - sony_imx585/*.c ? <CONFIG_SENSOR_SONY_IMX585>
   - sony_imx675/*.c ? <CONFIG_SENSOR_SONY_IMX675>
-  - sony_imx678/*.c ? <CONFIG_SENSOR_SONY_IMX675>
+  - sony_imx678/*.c ? <CONFIG_SENSOR_SONY_IMX678>
   - sony_imx900/*.c ? <CONFIG_SENSOR_SONY_IMX900>
   - techpoint_tp2860/*.c ? <CONFIG_SENSOR_TECHPOINT_TP2860>
   - lontium_lt6911/*.c ? <CONFIG_SENSOR_LONTIUM_LT6911>

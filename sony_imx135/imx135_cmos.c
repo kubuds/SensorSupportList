@@ -93,6 +93,8 @@ static CVI_S32 cmos_get_wdr_size(VI_PIPE ViPipe, ISP_SNS_ISP_INFO_S *pstIspCfg);
 #define IMX135_VMAX_HIGH_ADDR        0x0340 //vmax
 #define IMX135_VMAX_LOW_ADDR         0x0341 //vmax
 
+#define IMX135_FLIP_MIRROR_ADDR		0x0101 //flip mirror
+
 #define IMX135_RES_IS_8M(w, h)      ((w) == SENSOR_IMX135_8M_WIDTH && (h) == SENSOR_IMX135_8M_HEIGHT)
 static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSnsDft)
 {
@@ -727,6 +729,7 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 			pstI2c_data[LINEAR_DGAIN_GB_H].u32RegAddr = IMX135_DGAIN_HIGH_GB_ADDR;
 			pstI2c_data[LINEAR_VMAX_L].u32RegAddr = IMX135_VMAX_LOW_ADDR;
 			pstI2c_data[LINEAR_VMAX_H].u32RegAddr = IMX135_VMAX_HIGH_ADDR ;
+			pstI2c_data[LINEAR_FLIP_MIRROR].u32RegAddr = IMX135_FLIP_MIRROR_ADDR;
 			pstI2c_data[LINEAR_HOLD_END].u32RegAddr = IMX135_HOLD_ADDR;
 			pstI2c_data[LINEAR_HOLD_END].u32Data = 0;
 			pstCfg0->ispCfg.u8DelayFrmNum = 0;
@@ -763,12 +766,16 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 		/* check update isp crop or not */
 		pstCfg0->ispCfg.need_update = (sensor_cmp_wdr_size(&pstCfg0->ispCfg, &pstCfg1->ispCfg) ?
 				CVI_TRUE : CVI_FALSE);
+		pstCfg0->ispCfg.u8DelayFrmNum = 1;
 	}
 
 	pstSnsRegsInfo->bConfig = CVI_FALSE;
 	memcpy(pstSnsSyncInfo, &pstSnsState->astSyncInfo[0], sizeof(ISP_SNS_SYNC_INFO_S));
 	memcpy(&pstSnsState->astSyncInfo[1], &pstSnsState->astSyncInfo[0], sizeof(ISP_SNS_SYNC_INFO_S));
 	pstSnsState->au32FL[1] = pstSnsState->au32FL[0];
+
+	if (pstSnsState->enWDRMode == WDR_MODE_NONE)
+		pstCfg0->snsCfg.astI2cData[LINEAR_FLIP_MIRROR].bDropFrm = CVI_FALSE;
 
 	return CVI_SUCCESS;
 }
@@ -832,13 +839,56 @@ static CVI_S32 cmos_set_image_mode(VI_PIPE ViPipe, ISP_CMOS_SENSOR_IMAGE_MODE_S 
 
 static CVI_VOID sensor_mirror_flip(VI_PIPE ViPipe, ISP_SNS_MIRRORFLIP_TYPE_E eSnsMirrorFlip)
 {
+	CVI_U8 value = 0x0;
+	CVI_U8 start_x = 0;
+	CVI_U8 start_y = 0;
+
 	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
+	ISP_SNS_REGS_INFO_S *pstSnsRegsInfo = CVI_NULL;
+	ISP_SNS_ISP_INFO_S *pstIspCfg0 = CVI_NULL;
 
 	IMX135_SENSOR_GET_CTX(ViPipe, pstSnsState);
 	CMOS_CHECK_POINTER_VOID(pstSnsState);
+
+	pstSnsRegsInfo = &pstSnsState->astSyncInfo[0].snsCfg;
+	pstIspCfg0 = &pstSnsState->astSyncInfo[0].ispCfg;
+
+	/* Apply the setting on the fly  */
 	if (pstSnsState->bInit == CVI_TRUE && g_aeImx135_MirrorFip[ViPipe] != eSnsMirrorFlip) {
-		imx135_mirror_flip(ViPipe, eSnsMirrorFlip);
+		switch (eSnsMirrorFlip) {
+		case ISP_SNS_NORMAL:
+			value = 0x0;
+			start_x = 0;
+			start_y = 0;
+			break;
+		case ISP_SNS_MIRROR:
+			value = 0x1;
+			start_x = 1;
+			start_y = 0;
+			break;
+		case ISP_SNS_FLIP:
+			value = 0x2;
+			start_x = 0;
+			start_y = 1;
+			break;
+		case ISP_SNS_MIRROR_FLIP:
+			value = 0x3;
+			start_x = 1;
+			start_y = 1;
+			break;
+		default:
+			return;
+		}
+
+		if (pstSnsState->enWDRMode == WDR_MODE_NONE) {
+			pstSnsRegsInfo->astI2cData[LINEAR_FLIP_MIRROR].u32Data = value;
+			pstSnsRegsInfo->astI2cData[LINEAR_FLIP_MIRROR].bDropFrm = 1;
+			pstSnsRegsInfo->astI2cData[LINEAR_FLIP_MIRROR].u8DropFrmNum = 2;
+		}
 		g_aeImx135_MirrorFip[ViPipe] = eSnsMirrorFlip;
+		pstIspCfg0->img_size[0].stWndRect.s32X = start_x;
+		pstIspCfg0->img_size[0].stWndRect.s32Y = start_y;
+
 	}
 }
 

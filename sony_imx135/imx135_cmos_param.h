@@ -17,8 +17,8 @@ static const IMX135_MODE_S g_astImx135_mode[IMX135_MODE_NUM] = {
 			.name = "IMX135_8M25",
 			.astImg[0] = {
 				.stSnsSize = {
-					.u32Width = 3840,
-					.u32Height = 2160,
+					.u32Width = 3848,
+					.u32Height = 2168,
 				},
 				.stWndRect = {
 					.s32X = 0,
@@ -27,8 +27,8 @@ static const IMX135_MODE_S g_astImx135_mode[IMX135_MODE_NUM] = {
 					.u32Height = 2160,
 				},
 				.stMaxSize = {
-					.u32Width = 3840,
-					.u32Height = 2160,
+					.u32Width = 3848,
+					.u32Height = 2168,
 				},
 			},
 			.f32MaxFps = 25,
