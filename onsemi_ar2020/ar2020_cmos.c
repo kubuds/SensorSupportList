@@ -184,7 +184,7 @@ static CVI_S32 cmos_fps_set(VI_PIPE ViPipe, CVI_FLOAT f32Fps, AE_SENSOR_DEFAULT_
 
 	pstSnsState->u32FLStd = u32VMAX;
 
-	pstSnsRegsInfo->astI2cData[LINEAR_VMAX_0_ADDR].u32Data = ((u32VMAX & 0xFFFF));
+	pstSnsRegsInfo->astI2cData[LINEAR_VMAX_ADDR].u32Data = ((u32VMAX & 0xFFFF));
 	pstAeSnsDft->f32Fps = f32Fps;
 	pstAeSnsDft->u32LinesPer500ms = pstSnsState->u32FLStd * f32Fps / 2;
 	pstAeSnsDft->u32FullLinesStd = pstSnsState->u32FLStd;
@@ -497,7 +497,7 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 
 			pstI2c_data[LINEAR_AGAIN_ADDR].u32RegAddr      = AR2020_AGAIN_ADDR;
 
-			pstI2c_data[LINEAR_VMAX_0_ADDR].u32RegAddr     = AR2020_VMAX_ADDR;
+			pstI2c_data[LINEAR_VMAX_ADDR].u32RegAddr     = AR2020_VMAX_ADDR;
 			break;
 		default:
 			CVI_TRACE_SNS(CVI_DBG_ERR, "NOT support this mode!\n");
@@ -764,6 +764,7 @@ static CVI_VOID sensor_ctx_exit(VI_PIPE ViPipe)
 	AR2020_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
 	SENSOR_FREE(pastSnsStateCtx);
 	AR2020_SENSOR_RESET_CTX(ViPipe);
+	g_aeAr2020_MirrorFip[ViPipe] = ISP_SNS_NORMAL;
 }
 
 static CVI_S32 sensor_register_callback(VI_PIPE ViPipe, ALG_LIB_S *pstAeLib, ALG_LIB_S *pstAwbLib)

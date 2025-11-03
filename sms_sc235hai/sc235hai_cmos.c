@@ -45,6 +45,8 @@ ISP_SNS_COMMADDR_U g_aunSC235HAI_AddrInfo[VI_MAX_PIPE_NUM] = {
 	[1 ... VI_MAX_PIPE_NUM - 1] = { .s8I2cAddr = -1}
 };
 
+ISP_SNS_MIRRORFLIP_TYPE_E g_aeSC235HAI_MirrorFip[VI_MAX_PIPE_NUM] = {0};
+
 CVI_U16 g_au16SC235HAI_GainMode[VI_MAX_PIPE_NUM] = {0};
 CVI_U16 g_au16SC235HAI_L2SMode[VI_MAX_PIPE_NUM] = {0};
 
@@ -135,8 +137,8 @@ static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSns
 	switch (pstSnsState->enWDRMode) {
 	default:
 	case WDR_MODE_NONE:   /*linear mode*/
-		pstAeSnsDft->f32Fps = g_astSC235HAI_mode[SC235HAI_MODE_1080P15_1L].f32MaxFps;
-		pstAeSnsDft->f32MinFps = g_astSC235HAI_mode[SC235HAI_MODE_1080P15_1L].f32MinFps;
+		pstAeSnsDft->f32Fps = g_astSC235HAI_mode[pstSnsState->u8ImgMode].f32MaxFps;
+		pstAeSnsDft->f32MinFps = g_astSC235HAI_mode[pstSnsState->u8ImgMode].f32MinFps;
 		pstAeSnsDft->au8HistThresh[0] = 0xd;
 		pstAeSnsDft->au8HistThresh[1] = 0x28;
 		pstAeSnsDft->au8HistThresh[2] = 0x60;
@@ -165,8 +167,8 @@ static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSns
 		pstAeSnsDft->u32MinIntTimeTarget = pstAeSnsDft->u32MinIntTime;
 		break;
 	case WDR_MODE_2To1_LINE:
-		pstAeSnsDft->f32Fps = g_astSC235HAI_mode[SC235HAI_MODE_1080P15_2L].f32MaxFps;
-		pstAeSnsDft->f32MinFps = g_astSC235HAI_mode[SC235HAI_MODE_1080P15_2L].f32MinFps;
+		pstAeSnsDft->f32Fps = g_astSC235HAI_mode[pstSnsState->u8ImgMode].f32MaxFps;
+		pstAeSnsDft->f32MinFps = g_astSC235HAI_mode[pstSnsState->u8ImgMode].f32MinFps;
 		pstAeSnsDft->au8HistThresh[0] = 0xC;
 		pstAeSnsDft->au8HistThresh[1] = 0x18;
 		pstAeSnsDft->au8HistThresh[2] = 0x60;
@@ -975,6 +977,35 @@ static CVI_S32 cmos_set_image_mode(VI_PIPE ViPipe, ISP_CMOS_SENSOR_IMAGE_MODE_S 
 			return CVI_FAILURE;
 		}
 	} else {
+		if (pstSnsState->enWDRMode == WDR_MODE_NONE) {
+			if (pstSensorImageMode->u8LaneNum == 2) {
+				if (pstSensorImageMode->u8EnableMaster == ISP_SNS_NORMAL_MODE) {
+					u8SensorImageMode = SC235HAI_MODE_1080P30_2L;
+				} else {
+					CVI_TRACE_SNS(CVI_DBG_ERR, "Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n",
+						pstSensorImageMode->u16Width,
+						pstSensorImageMode->u16Height,
+						pstSensorImageMode->f32Fps,
+						pstSnsState->enWDRMode);
+					return CVI_FAILURE;
+				}
+			} else {
+				CVI_TRACE_SNS(CVI_DBG_ERR, "Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n",
+					pstSensorImageMode->u16Width,
+					pstSensorImageMode->u16Height,
+					pstSensorImageMode->f32Fps,
+					pstSnsState->enWDRMode);
+				return CVI_FAILURE;
+			}
+		}else {
+			CVI_TRACE_SNS(CVI_DBG_ERR, "Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n",
+			       pstSensorImageMode->u16Width,
+			       pstSensorImageMode->u16Height,
+			       pstSensorImageMode->f32Fps,
+			       pstSnsState->enWDRMode);
+			return CVI_FAILURE;
+		}
+
 	}
 
 	if ((pstSnsState->bInit == CVI_TRUE) && (u8SensorImageMode == pstSnsState->u8ImgMode)) {
@@ -985,6 +1016,19 @@ static CVI_S32 cmos_set_image_mode(VI_PIPE ViPipe, ISP_CMOS_SENSOR_IMAGE_MODE_S 
 	pstSnsState->u8ImgMode = u8SensorImageMode;
 
 	return CVI_SUCCESS;
+}
+
+static CVI_VOID sensor_mirror_flip(VI_PIPE ViPipe, ISP_SNS_MIRRORFLIP_TYPE_E eSnsMirrorFlip)
+{
+	ISP_SNS_STATE_S *pstSnsState = CVI_NULL;
+
+	SC235HAI_SENSOR_GET_CTX(ViPipe, pstSnsState);
+	CMOS_CHECK_POINTER_VOID(pstSnsState);
+	/* Apply the setting on the fly  */
+	if (pstSnsState->bInit == CVI_TRUE && g_aeSC235HAI_MirrorFip[ViPipe] != eSnsMirrorFlip) {
+		sc235hai_mirror_flip(ViPipe, eSnsMirrorFlip);
+		g_aeSC235HAI_MirrorFip[ViPipe] = eSnsMirrorFlip;
+	}
 }
 
 static CVI_VOID sensor_global_init(VI_PIPE ViPipe)
@@ -1156,6 +1200,7 @@ static CVI_VOID sensor_ctx_exit(VI_PIPE ViPipe)
 	SC235HAI_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
 	SENSOR_FREE(pastSnsStateCtx);
 	SC235HAI_SENSOR_RESET_CTX(ViPipe);
+	g_aeSC235HAI_MirrorFip[ViPipe] = ISP_SNS_NORMAL;
 }
 
 static CVI_S32 sensor_register_callback(VI_PIPE ViPipe, ALG_LIB_S *pstAeLib, ALG_LIB_S *pstAwbLib)
@@ -1255,7 +1300,7 @@ ISP_SNS_OBJ_S stSnsSC235HAI_Obj = {
 	.pfnUnRegisterCallback  = sensor_unregister_callback,
 	.pfnStandby             = sc235hai_standby,
 	.pfnRestart             = sc235hai_restart,
-	.pfnMirrorFlip          = sc235hai_mirror_flip,
+	.pfnMirrorFlip          = sensor_mirror_flip,
 	.pfnWriteReg            = sc235hai_write_register,
 	.pfnReadReg             = sc235hai_read_register,
 	.pfnSetBusInfo          = sc235hai_set_bus_info,

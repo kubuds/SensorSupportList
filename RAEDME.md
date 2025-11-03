@@ -49,3 +49,7 @@
      extern ISP_SNS_OBJ_S stSnsCV2003_Obj;
      #define CVSENS_CV2003_MIPI_2M_1080P_30FPS_10BIT 0X44003340
      ```
+
+## 许可证
+
+本项目基于 [BSD 2-Clause License](LICENSE) 许可证开源。

@@ -249,6 +249,9 @@ sony_imx415:
 sony_imx585:
 	$(call MAKE_SENSOR, ${@})
 
+sony_imx662:
+	$(call MAKE_SENSOR, ${@})
+
 sony_imx675:
 	$(call MAKE_SENSOR, ${@})
 

@@ -91,7 +91,7 @@ static CVI_S32 cmos_get_ae_default(VI_PIPE ViPipe, AE_SENSOR_DEFAULT_S *pstAeSns
 	pstMode = &g_astSC1346_1L_Slave_mode[pstSnsState->u8ImgMode];
 	if (pstSnsState->u8ImgMode == SC1346_1L_SLAVE_MODE_720P60)
 		fps = 60;
-	
+
 	pstAeSnsDft->u32FullLinesStd = pstSnsState->u32FLStd;
 	pstAeSnsDft->u32FlickerFreq = 50 * 256;
 	pstAeSnsDft->u32FullLinesMax = SC1346_1L_SLAVE_FULL_LINES_MAX;
@@ -956,6 +956,7 @@ static CVI_VOID sensor_ctx_exit(VI_PIPE ViPipe)
 	SC1346_1L_SLAVE_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
 	SENSOR_FREE(pastSnsStateCtx);
 	SC1346_1L_SLAVE_SENSOR_RESET_CTX(ViPipe);
+	g_aeSc1346_Slave_MirrorFip[ViPipe] = ISP_SNS_NORMAL;
 }
 
 static CVI_S32 sensor_register_callback(VI_PIPE ViPipe, ALG_LIB_S *pstAeLib, ALG_LIB_S *pstAwbLib)

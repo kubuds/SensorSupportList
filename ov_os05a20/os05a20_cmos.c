@@ -858,6 +858,7 @@ static CVI_VOID sensor_ctx_exit(VI_PIPE ViPipe)
 	OS05A20_SENSOR_GET_CTX(ViPipe, pastSnsStateCtx);
 	SENSOR_FREE(pastSnsStateCtx);
 	OS05A20_SENSOR_RESET_CTX(ViPipe);
+	g_aeOs05a20_MirrorFip[ViPipe] = ISP_SNS_NORMAL;
 }
 
 static CVI_S32 sensor_register_callback(VI_PIPE ViPipe, ALG_LIB_S *pstAeLib, ALG_LIB_S *pstAwbLib)

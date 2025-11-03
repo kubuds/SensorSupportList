@@ -160,6 +160,7 @@ build_config:
     - sony_imx412
     - sony_imx415
     - sony_imx585
+    - sony_imx662
     - sony_imx675
     - sony_imx678
     - sony_imx900
@@ -244,6 +245,7 @@ source_file:
   - sony_imx412/*.c ? <CONFIG_SENSOR_SONY_IMX412>
   - sony_imx415/*.c ? <CONFIG_SENSOR_SONY_IMX415>
   - sony_imx585/*.c ? <CONFIG_SENSOR_SONY_IMX585>
+  - sony_imx662/*.c ? <CONFIG_SENSOR_SONY_IMX662>
   - sony_imx675/*.c ? <CONFIG_SENSOR_SONY_IMX675>
   - sony_imx678/*.c ? <CONFIG_SENSOR_SONY_IMX678>
   - sony_imx900/*.c ? <CONFIG_SENSOR_SONY_IMX900>
