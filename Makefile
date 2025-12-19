@@ -69,6 +69,9 @@ gcore_gc4653:
 gcore_gc8613:
 	$(call MAKE_SENSOR, ${@})
 
+ imgds_mis40c1:
+	$(call MAKE_SENSOR, ${@})
+
 nextchip_n5:
 	$(call MAKE_SENSOR, ${@})
 
@@ -193,6 +196,9 @@ sms_sc4336:
 	$(call MAKE_SENSOR, ${@})
 
 sms_sc4336p:
+	$(call MAKE_SENSOR, ${@})
+
+sms_sc202l:
 	$(call MAKE_SENSOR, ${@})
 
 soi_f23:

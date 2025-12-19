@@ -34,10 +34,10 @@ static const IMX135_MODE_S g_astImx135_mode[IMX135_MODE_NUM] = {
 			.f32MaxFps = 25,
 			.f32MinFps = 0.07, /* 0x8CA * 30 / 0xFFFFF */
 			.u32HtsDef = 4572,
-			.u32VtsDef = 2546,
+			.u32VtsDef = 3078,
 			.stExp[0] = {
 				.u16Min = 5,
-				.u16Max = 2546 - 4,
+				.u16Max = 3078 - 4,
 				.u16Def = 2496,
 				.u16Step = 1,
 			},

@@ -21,7 +21,7 @@
 #define DIV_0_TO_1(a)   ((0 == (a)) ? 1 : (a))
 #define DIV_0_TO_1_FLOAT(a) ((((a) < 1E-10) && ((a) > -1E-10)) ? 1 : (a))
 #define OS04E10_ID 0x530641
-#define OS04E10_I2C_ADDR_1 0x36
+#define OS04E10_I2C_ADDR_1 0x10
 #define OS04E10_I2C_ADDR_2 0x36
 #define OS04E10_I2C_ADDR_IS_VALID(addr)      ((addr) == OS04E10_I2C_ADDR_1 || (addr) == OS04E10_I2C_ADDR_2)
 

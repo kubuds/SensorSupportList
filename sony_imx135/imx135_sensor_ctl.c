@@ -121,7 +121,7 @@ int imx135_probe(VI_PIPE ViPipe)
 
 static void imx135_linear_8M25_init(VI_PIPE ViPipe)
 {
-	delay_ms(4);
+	// MCLK:24Mhz, MIPI DATA RATE:728Mbps, HTS:4572, VTS:3056, PIXEL CLK:176Mhz X 2CH
 	imx135_write_register(ViPipe, 0x0100, 0x00);
 	imx135_write_register(ViPipe, 0x0101, 0x00);
 	imx135_write_register(ViPipe, 0x0105, 0x01);
@@ -163,7 +163,7 @@ static void imx135_linear_8M25_init(VI_PIPE ViPipe)
 	imx135_write_register(ViPipe, 0x0309, 0x05);
 	imx135_write_register(ViPipe, 0x030B, 0x01);
 	imx135_write_register(ViPipe, 0x030C, 0x01);
-	imx135_write_register(ViPipe, 0x030D, 0x6C);
+	imx135_write_register(ViPipe, 0x030D, 0xB8);
 	imx135_write_register(ViPipe, 0x030E, 0x01);
 	imx135_write_register(ViPipe, 0x3A06, 0x11);
 	imx135_write_register(ViPipe, 0x0108, 0x03);
@@ -188,8 +188,8 @@ static void imx135_linear_8M25_init(VI_PIPE ViPipe)
 	imx135_write_register(ViPipe, 0x4203, 0xFF);
 	imx135_write_register(ViPipe, 0x4344, 0x00);
 	imx135_write_register(ViPipe, 0x441C, 0x01);
-	imx135_write_register(ViPipe, 0x0340, 0x09);
-	imx135_write_register(ViPipe, 0x0341, 0xF2);
+	imx135_write_register(ViPipe, 0x0340, 0x0C);
+	imx135_write_register(ViPipe, 0x0341, 0x06);
 	imx135_write_register(ViPipe, 0x0342, 0x11);
 	imx135_write_register(ViPipe, 0x0343, 0xDC);
 	imx135_write_register(ViPipe, 0x0344, 0x00);
@@ -236,7 +236,6 @@ static void imx135_linear_8M25_init(VI_PIPE ViPipe)
 	imx135_write_register(ViPipe, 0x0839, 0x1F);
 	imx135_write_register(ViPipe, 0x083A, 0x17);
 	imx135_write_register(ViPipe, 0x083B, 0x02);
-	imx135_write_register(ViPipe, 0x3302, 0x00);
 	imx135_write_register(ViPipe, 0x0202, 0x09);
 	imx135_write_register(ViPipe, 0x0203, 0xC0);
 	imx135_write_register(ViPipe, 0x0205, 0x00);
@@ -263,6 +262,9 @@ static void imx135_linear_8M25_init(VI_PIPE ViPipe)
 	imx135_write_register(ViPipe, 0x33B4, 0x01);
 	imx135_write_register(ViPipe, 0x3800, 0x00);
 	imx135_write_register(ViPipe, 0x3A43, 0x01);
+	imx135_write_register(ViPipe, 0x380A, 0x01);
+	imx135_write_register(ViPipe, 0x380B, 0x01);
+	imx135_write_register(ViPipe, 0x4103, 0x01);
 	delay_ms(4);
 	imx135_write_register(ViPipe, 0x0100, 0x01);
 

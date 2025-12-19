@@ -102,6 +102,7 @@ build_config:
     - gcore_gc4023
     - gcore_gc4653
     - gcore_gc8613
+    - imgds_mis40c1
     - nextchip_n5
     - nextchip_n6
     - nuc_nc021
@@ -142,6 +143,7 @@ build_config:
     - sms_sc2335
     - sms_sc4336
     - sms_sc4336p
+    - sms_sc202l
     - soi_f23
     - soi_f35
     - soi_f37p
@@ -185,6 +187,7 @@ source_file:
   - gcore_gc4023/*.c ? <CONFIG_SENSOR_GCORE_GC4023>
   - gcore_gc4653/*.c ? <CONFIG_SENSOR_GCORE_GC4653>
   - gcore_gc8613/*.c ? <CONFIG_SENSOR_GCORE_GC8613>
+  - imgds_mis40c1/*.c ? <CONFIG_SENSOR_IMGDS_MIS40C1>
   - nextchip_n5/*.c ? <CONFIG_SENSOR_NEXTCHIP_N5>
   - nextchip_n6/*.c ? <CONFIG_SENSOR_NEXTCHIP_N6>
   - nuc_nc021/*.c ? <CONFIG_SENSOR_NUC_NC021>
@@ -227,6 +230,7 @@ source_file:
   - sms_sc2335/*.c ? <CONFIG_SENSOR_SMS_SC2335>
   - sms_sc4336/*.c ? <CONFIG_SENSOR_SMS_SC4336>
   - sms_sc4336p/*.c ? <CONFIG_SENSOR_SMS_SC4336P>
+  - sms_sc202l/*.c ? <CONFIG_SENSOR_SMS_SC202L>
   - soi_f23/*.c ? <CONFIG_SENSOR_SOI_F23>
   - soi_f35/*.c ? <CONFIG_SENSOR_SOI_F35>
   - soi_f37p/*.c ? <CONFIG_SENSOR_SOI_F37P>

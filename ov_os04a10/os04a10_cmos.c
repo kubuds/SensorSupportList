@@ -1102,10 +1102,10 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 			pstI2c_data[WDR2_LAUNCH_1].u8DelayFrmNum = 0;
 			pstI2c_data[WDR2_HCG_0].u32RegAddr = OS04A10_HCG_ADDR1;
 			pstI2c_data[WDR2_HCG_0].bvblankUpdate = CVI_TRUE;
-			pstI2c_data[WDR2_HCG_0].u8DelayFrmNum = 3;
+			pstI2c_data[WDR2_HCG_0].u8DelayFrmNum = 2;
 			pstI2c_data[WDR2_HCG_1].u32RegAddr = OS04A10_HCG_ADDR2;
 			pstI2c_data[WDR2_HCG_1].bvblankUpdate = CVI_TRUE;
-			pstI2c_data[WDR2_HCG_1].u8DelayFrmNum = 3;
+			pstI2c_data[WDR2_HCG_1].u8DelayFrmNum = 2;
 			break;
 		default:
 			pstI2c_data[LINEAR_HOLD_START].u32RegAddr = OS04A10_HOLD_3208;
@@ -1129,10 +1129,10 @@ static CVI_S32 cmos_get_sns_regs_info(VI_PIPE ViPipe, ISP_SNS_SYNC_INFO_S *pstSn
 			pstI2c_data[LINEAR_LAUNCH_1].u8DelayFrmNum = 0;
 			pstI2c_data[LINEAR_HCG_0].u32RegAddr = OS04A10_HCG_ADDR1;
 			pstI2c_data[LINEAR_HCG_0].bvblankUpdate = CVI_TRUE;
-			pstI2c_data[LINEAR_HCG_0].u8DelayFrmNum = 3;
+			pstI2c_data[LINEAR_HCG_0].u8DelayFrmNum = 2;
 			pstI2c_data[LINEAR_HCG_1].u32RegAddr = OS04A10_HCG_ADDR2;
 			pstI2c_data[LINEAR_HCG_1].bvblankUpdate = CVI_TRUE;
-			pstI2c_data[LINEAR_HCG_1].u8DelayFrmNum = 3;
+			pstI2c_data[LINEAR_HCG_1].u8DelayFrmNum = 2;
 			break;
 		}
 		pstSnsState->bSyncInit = CVI_TRUE;

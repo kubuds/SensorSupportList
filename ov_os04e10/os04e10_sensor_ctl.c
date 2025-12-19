@@ -121,11 +121,13 @@ void os04e10_mirror_flip(VI_PIPE ViPipe, ISP_SNS_MIRRORFLIP_TYPE_E eSnsMirrorFli
 #define OS04E10_CHIP_ID_ADDR_H		0x300A
 #define OS04E10_CHIP_ID_ADDR_M		0x300B
 #define OS04E10_CHIP_ID_ADDR_L		0x300C
-#define OS04E10_CHIP_ID			0x530641
+#define OS04E10_CHIP_ID_1			0x530641
+#define OS04E10_CHIP_ID_2			0x530445
 
 int os04e10_probe(VI_PIPE ViPipe)
 {
 	int nVal, nVal2, nVal3;
+	CVI_U32 chip_id;
 
 	usleep(500);
 	if (os04e10_i2c_init(ViPipe) != CVI_SUCCESS)
@@ -139,7 +141,9 @@ int os04e10_probe(VI_PIPE ViPipe)
 		return nVal;
 	}
 
-	if ((((nVal & 0xFF) << 16) | ((nVal2 & 0xFF) << 8) | (nVal3 & 0xFF)) != OS04E10_CHIP_ID) {
+	chip_id = ((nVal & 0xFF) << 16) | ((nVal2 & 0xFF) << 8) | (nVal3 & 0xFF);
+
+	if (chip_id != OS04E10_CHIP_ID_1 && chip_id != OS04E10_CHIP_ID_2) {
 		CVI_TRACE_SNS(CVI_DBG_ERR, "Sensor ID Mismatch! Use the wrong sensor??\n");
 		return CVI_FAILURE;
 	}
