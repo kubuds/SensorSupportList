@@ -371,6 +371,10 @@ CVI_S32 cvi_sns_getsize(CVI_U32 dev_num, SENSOR_CFG_S *sensor_cfg)
 		sns_cfg->u32ImageHeight[dev_num] = 1080;
 		break;
 #endif
+	case OV_OV5647_MIPI_2M_30FPS_10BIT:
+		sns_cfg->u32ImageWigth[dev_num] = 1920;
+		sns_cfg->u32ImageHeight[dev_num] = 1080;
+		break;
 	default:
 		s32Ret = CVI_FAILURE;
 		break;
@@ -784,6 +788,9 @@ CVI_S32 cvi_sns_getispattr(CVI_U32 dev_num, SENSOR_CFG_S *sensor_cfg)
 	case SMS_SC235HAI_2L_SLAVE_MIPI_2M_15FPS_10BIT:
 		sns_cfg->f32FrameRate[dev_num] = 15;
 		break;
+	case OV_OV5647_MIPI_2M_30FPS_10BIT:
+		sns_cfg->f32FrameRate[dev_num] = 30;
+		break;
 	default:
 		sns_cfg->f32FrameRate[dev_num] = 25;
 		break;
@@ -1101,6 +1108,11 @@ CVI_S32 cvi_sns_getsnsobj(CVI_U32 dev_num, SENSOR_CFG_S *sensor_cfg)
 #if defined(CONFIG_SENSOR_OV_OV6211)
 	case OV_OV6211_MIPI_400P_120FPS_10BIT:
 		pSnsObj = &stSnsOv6211_Obj;
+		break;
+#endif
+#if defined(CONFIG_SENSOR_OV_OV5647)
+	case OV_OV5647_MIPI_2M_30FPS_10BIT:
+		pSnsObj = &stSnsOv5647_Obj;
 		break;
 #endif
 #if defined(CONFIG_SENSOR_OV_OV7251)
